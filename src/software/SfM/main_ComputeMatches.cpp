@@ -72,6 +72,7 @@ int main(int argc, char **argv)
 
   std::string sSfM_Data_Filename;
   std::string sMatchesDirectory = "";
+  std::string sMatchesFileNamePrefix = "";
   std::string sGeometricModel = "f";
   float fDistRatio = 0.8f;
   int iMatchingVideoMode = -1;
@@ -86,6 +87,7 @@ int main(int argc, char **argv)
   cmd.add( make_option('i', sSfM_Data_Filename, "input_file") );
   cmd.add( make_option('o', sMatchesDirectory, "out_dir") );
   // Options
+  cmd.add( make_option('M', sMatchesFileNamePrefix, "matchesFileNamePrefix") );
   cmd.add( make_option('r', fDistRatio, "ratio") );
   cmd.add( make_option('g', sGeometricModel, "geometric_model") );
   cmd.add( make_option('v', iMatchingVideoMode, "video_mode_matching") );
@@ -103,8 +105,9 @@ int main(int argc, char **argv)
   } catch (const std::string& s) {
       std::cerr << "Usage: " << argv[0] << '\n'
       << "[-i|--input_file] a SfM_Data file\n"
-      << "[-o|--out_dir path] output path where computed are stored\n"
+      << "[-o|--out_dir path] output path where computed matches are stored\n"
       << "\n[Optional]\n"
+      << "[-M|--matchesFileNamePrefix] matches file prefix\n"
       << "[-f|--force] Force to recompute data]\n"
       << "[-r|--ratio] Distance ratio to discard non meaningful matches\n"
       << "   0.8: (default).\n"
@@ -148,6 +151,7 @@ int main(int argc, char **argv)
             << "--input_file " << sSfM_Data_Filename << "\n"
             << "--out_dir " << sMatchesDirectory << "\n"
             << "Optional parameters:" << "\n"
+            << "--matchesFileName " << sMatchesFileNamePrefix << "\n"
             << "--force " << bForce << "\n"
             << "--ratio " << fDistRatio << "\n"
             << "--geometric_model " << sGeometricModel << "\n"
@@ -178,19 +182,19 @@ int main(int argc, char **argv)
   {
     case 'f': case 'F':
       eGeometricModelToCompute = FUNDAMENTAL_MATRIX;
-      sGeometricMatchesFilename = "matches.f.bin";
+      sGeometricMatchesFilename = sMatchesFileNamePrefix + "_matches.f.bin";
     break;
     case 'e': case 'E':
       eGeometricModelToCompute = ESSENTIAL_MATRIX;
-      sGeometricMatchesFilename = "matches.e.bin";
+      sGeometricMatchesFilename = sMatchesFileNamePrefix + "_matches.e.bin";
     break;
     case 'h': case 'H':
       eGeometricModelToCompute = HOMOGRAPHY_MATRIX;
-      sGeometricMatchesFilename = "matches.h.bin";
+      sGeometricMatchesFilename = sMatchesFileNamePrefix + "_matches.h.bin";
     break;
     case 'a': case 'A':
       eGeometricModelToCompute = ESSENTIAL_MATRIX_ANGULAR;
-      sGeometricMatchesFilename = "matches.f.bin";
+      sGeometricMatchesFilename = sMatchesFileNamePrefix + "_matches.f.bin";
     break;
     case 'o': case 'O':
       eGeometricModelToCompute = ESSENTIAL_MATRIX_ORTHO;
@@ -282,12 +286,12 @@ int main(int argc, char **argv)
   std::cout << std::endl << " - PUTATIVE MATCHES - " << std::endl;
   // If the matches already exists, reload them
   if (!bForce
-        && (stlplus::file_exists(sMatchesDirectory + "/matches.putative.txt")
-        || stlplus::file_exists(sMatchesDirectory + "/matches.putative.bin"))
+        && (stlplus::file_exists(sMatchesDirectory + "/" + sMatchesFileNamePrefix + "_matches.putative.txt")
+        || stlplus::file_exists(sMatchesDirectory + "/" + sMatchesFileNamePrefix + "_matches.putative.bin"))
   )
   {
-    if (!(Load(map_PutativesMatches, sMatchesDirectory + "/matches.putative.bin") ||
-          Load(map_PutativesMatches, sMatchesDirectory + "/matches.putative.txt")) )
+    if (!(Load(map_PutativesMatches, sMatchesDirectory + "/" + sMatchesFileNamePrefix + "_matches.putative.bin") ||
+          Load(map_PutativesMatches, sMatchesDirectory + "/" + sMatchesFileNamePrefix + "_matches.putative.txt")) )
     {
       std::cerr << "Cannot load input matches file";
       return EXIT_FAILURE;
@@ -377,11 +381,11 @@ int main(int argc, char **argv)
       //---------------------------------------
       //-- Export putative matches
       //---------------------------------------
-      if (!Save(map_PutativesMatches, std::string(sMatchesDirectory + "/matches.putative.bin")))
+      if (!Save(map_PutativesMatches, std::string(sMatchesDirectory + "/" + sMatchesFileNamePrefix + "_matches.putative.bin")))
       {
         std::cerr
           << "Cannot save computed matches in: "
-          << std::string(sMatchesDirectory + "/matches.putative.bin");
+          << std::string(sMatchesDirectory + "/" + sMatchesFileNamePrefix + "_matches.putative.bin");
         return EXIT_FAILURE;
       }
     }
@@ -390,7 +394,7 @@ int main(int argc, char **argv)
   //-- export putative matches Adjacency matrix
   PairWiseMatchingToAdjacencyMatrixSVG(vec_fileNames.size(),
     map_PutativesMatches,
-    stlplus::create_filespec(sMatchesDirectory, "PutativeAdjacencyMatrix", "svg"));
+    stlplus::create_filespec(sMatchesDirectory, sMatchesFileNamePrefix + "_PutativeAdjacencyMatrix", "svg"));
   //-- export view pair graph once putative graph matches have been computed
   {
     std::set<IndexT> set_ViewIds;
@@ -398,7 +402,7 @@ int main(int argc, char **argv)
       std::inserter(set_ViewIds, set_ViewIds.begin()), stl::RetrieveKey());
     graph::indexedGraph putativeGraph(set_ViewIds, getPairs(map_PutativesMatches));
     graph::exportToGraphvizData(
-      stlplus::create_filespec(sMatchesDirectory, "putative_matches"),
+      stlplus::create_filespec(sMatchesDirectory, sMatchesFileNamePrefix + "_putative_matches"),
       putativeGraph);
   }
 
@@ -500,7 +504,7 @@ int main(int argc, char **argv)
       << std::endl;
     PairWiseMatchingToAdjacencyMatrixSVG(vec_fileNames.size(),
       map_GeometricMatches,
-      stlplus::create_filespec(sMatchesDirectory, "GeometricAdjacencyMatrix", "svg"));
+      stlplus::create_filespec(sMatchesDirectory, sMatchesFileNamePrefix + "_GeometricAdjacencyMatrix", "svg"));
 
     //-- export view pair graph once geometric filter have been done
     {
@@ -509,7 +513,7 @@ int main(int argc, char **argv)
         std::inserter(set_ViewIds, set_ViewIds.begin()), stl::RetrieveKey());
       graph::indexedGraph putativeGraph(set_ViewIds, getPairs(map_GeometricMatches));
       graph::exportToGraphvizData(
-        stlplus::create_filespec(sMatchesDirectory, "geometric_matches"),
+        stlplus::create_filespec(sMatchesDirectory, sMatchesFileNamePrefix + "_geometric_matches"),
         putativeGraph);
     }
   }

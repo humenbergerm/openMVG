@@ -123,14 +123,47 @@ bool GlobalSfMReconstructionEngine_RelativeMotions::Process() {
     KeepOnlyReferencedElement(set_remainingIds, matches_provider_->pairWise_matches_);
   }
 
-  openMVG::rotation_averaging::RelativeRotations relatives_R;
-  Compute_Relative_Rotations(relatives_R);
-
   Hash_Map<IndexT, Mat3> global_rotations;
-  if (!Compute_Global_Rotations(relatives_R, global_rotations))
+
+  // if motion priors are used, skip rotation estimation
+  if (this->b_use_motion_prior_)
   {
-    std::cerr << "GlobalSfM:: Rotation Averaging failure!" << std::endl;
-    return false;
+//    if (this->sfm_data_.poses.size() != this->sfm_data_.views.size())
+//    {
+//      std::cout << "Number of poses is not equal to number of views in sfm_data file. Correct it or don't use prior poses." << std::endl;
+//      return false;
+//    }
+
+    std::cout << "Using orientation prior (using use_pose_rotation_prior in view) instead of relative and global rotation estimation." << std::endl;
+
+    //Poses & poses = sfm_data_.poses;
+
+    for (const auto & view_it : sfm_data_.GetViews())
+    {
+      const sfm::ViewPriors * prior = dynamic_cast<sfm::ViewPriors*>(view_it.second.get());
+
+      if (prior->b_use_pose_rotation_)
+        global_rotations[view_it.first] = prior->pose_rotation_;// poses[view_it.first].rotation();
+      else
+      {
+        std::cout << "No rotation prior given for view with ID " << view_it.first << ". No prior rotations will be used." << std::endl;
+        break;
+      }
+    }
+  }
+
+  if (global_rotations.size() != sfm_data_.GetViews().size())
+  {
+    global_rotations.clear();
+
+    openMVG::rotation_averaging::RelativeRotations relatives_R;
+    Compute_Relative_Rotations(relatives_R);
+
+    if (!Compute_Global_Rotations(relatives_R, global_rotations))
+    {
+      std::cerr << "GlobalSfM:: Rotation Averaging failure!" << std::endl;
+      return false;
+    }
   }
 
   matching::PairWiseMatches  tripletWise_matches;

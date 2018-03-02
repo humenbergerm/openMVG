@@ -173,7 +173,7 @@ int main(int argc, char **argv)
     PairWiseMatches matches;
     if (!Load(matches, sMatchFile))
     {
-      std::cerr<< "Unable to read the matches file." << std::endl;
+      std::cerr<< "Unable to read the matches file: " << sMatchFile << std::endl;
       return EXIT_FAILURE;
     }
     // Compute the tracks from the pairwise estimation
@@ -279,7 +279,7 @@ int main(int argc, char **argv)
       {
         if (!loadPairs(sfm_data.GetViews().size(), sPairFile, pairs))
         {
-          std::cerr << "Unable to read the pair file." << std::endl;
+          std::cerr << "Unable to read the pair file: " << sPairFile << std::endl;
           return EXIT_FAILURE;
         }
       }
@@ -288,7 +288,7 @@ int main(int argc, char **argv)
         PairWiseMatches matches;
         if (!Load(matches, sMatchFile))
         {
-          std::cerr<< "Unable to read the matches file." << std::endl;
+          std::cerr<< "Unable to read the matches file: " << sMatchFile << std::endl;
           return EXIT_FAILURE;
         }
         pairs = getPairs(matches);

@@ -270,8 +270,26 @@ int main(int argc, char **argv)
       const View * view = iterViews->second.get();
       const std::string
         sView_filename = stlplus::create_filespec(sfm_data.s_root_path, view->s_Img_path),
-        sFeat = stlplus::create_filespec(sOutDir, stlplus::basename_part(sView_filename), "feat"),
-        sDesc = stlplus::create_filespec(sOutDir, stlplus::basename_part(sView_filename), "desc");
+        //sFeat = stlplus::create_filespec(sOutDir, stlplus::basename_part(sView_filename), "feat"),
+        //sDesc = stlplus::create_filespec(sOutDir, stlplus::basename_part(sView_filename), "desc");
+        sFeat = stlplus::create_filespec(stlplus::folder_append_separator(sOutDir) + stlplus::folder_part(view->s_Img_path), stlplus::basename_part(view->s_Img_path), "feat"),
+        sDesc = stlplus::create_filespec(stlplus::folder_append_separator(sOutDir) + stlplus::folder_part(view->s_Img_path), stlplus::basename_part(view->s_Img_path), "desc");
+
+      // Create feature dirs
+      if (!stlplus::folder_exists(stlplus::folder_part(sFeat)))
+      {
+        if (!stlplus::folder_create(stlplus::folder_part(sFeat)))
+        {
+          std::cerr << "Cannot create feature directory: " << stlplus::folder_part(sFeat) << std::endl;
+        }
+      }
+      if (!stlplus::folder_exists(stlplus::folder_part(sDesc)))
+      {
+        if (!stlplus::folder_create(stlplus::folder_part(sDesc)))
+        {
+          std::cerr << "Cannot create descriptor directory: " << stlplus::folder_part(sDesc) << std::endl;
+        }
+      }
 
       // If features or descriptors file are missing, compute them
       if (!preemptive_exit && (bForce || !stlplus::file_exists(sFeat) || !stlplus::file_exists(sDesc)))

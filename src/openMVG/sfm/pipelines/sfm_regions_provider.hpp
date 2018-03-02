@@ -116,8 +116,11 @@ public:
       {
         const std::string sImageName = stlplus::create_filespec(sfm_data.s_root_path, iter->second->s_Img_path);
         const std::string basename = stlplus::basename_part(sImageName);
-        const std::string featFile = stlplus::create_filespec(feat_directory, basename, ".feat");
-        const std::string descFile = stlplus::create_filespec(feat_directory, basename, ".desc");
+        //const std::string featFile = stlplus::create_filespec(feat_directory, basename, ".feat");
+        //const std::string descFile = stlplus::create_filespec(feat_directory, basename, ".desc");
+
+        const std::string featFile = stlplus::create_filespec(stlplus::folder_append_separator(feat_directory) + stlplus::folder_part(iter->second->s_Img_path), stlplus::basename_part(iter->second->s_Img_path), "feat");
+        const std::string descFile = stlplus::create_filespec(stlplus::folder_append_separator(feat_directory) + stlplus::folder_part(iter->second->s_Img_path), stlplus::basename_part(iter->second->s_Img_path), "desc");
 
         std::unique_ptr<features::Regions> regions_ptr(region_type->EmptyClone());
         if (!regions_ptr->Load(featFile, descFile))
