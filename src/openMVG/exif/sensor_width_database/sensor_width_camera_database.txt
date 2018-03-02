@@ -3475,3 +3475,4 @@ Yakumo Mega Image 45;7.11
 Yakumo Mega Image 34;5.33
 Yakumo Mega Image IV;7.11
 Yakumo Mega Image II;7.11
+DSC-RX0;13.2

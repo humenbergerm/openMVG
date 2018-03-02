@@ -20,9 +20,9 @@ void openMVG::sfm::ViewPriors::save( Archive & ar ) const
   View::save(ar);
 
   // Pose center prior
+  ar( cereal::make_nvp( "use_pose_center_prior", b_use_pose_center_ ) );
   if (b_use_pose_center_)
   {
-    ar( cereal::make_nvp( "use_pose_center_prior", b_use_pose_center_ ) );
     const std::vector<double> vec_weights { center_weight_( 0 ), center_weight_( 1 ), center_weight_( 2 ) };
     ar( cereal::make_nvp( "center_weight", vec_weights ) );
     const std::vector<double> vec { pose_center_( 0 ), pose_center_( 1 ), pose_center_( 2 ) };
@@ -30,10 +30,9 @@ void openMVG::sfm::ViewPriors::save( Archive & ar ) const
   }
 
   // Pose rotation prior
-  /*
+  ar( cereal::make_nvp( "use_pose_rotation_prior", b_use_pose_rotation_ ) );
   if (b_use_pose_rotation_)
   {
-    ar( cereal::make_nvp( "use_pose_rotation_prior", b_use_pose_rotation_ ) );
     ar( cereal::make_nvp( "rotation_weight", rotation_weight_ ) );
     const std::vector<std::vector<double>> mat =
     {
@@ -43,7 +42,6 @@ void openMVG::sfm::ViewPriors::save( Archive & ar ) const
     };
     ar( cereal::make_nvp( "rotation", mat ) );
   }
-  */
 }
 
 template <class Archive>
@@ -55,11 +53,14 @@ void openMVG::sfm::ViewPriors::load( Archive & ar )
   try
   {
     ar( cereal::make_nvp( "use_pose_center_prior", b_use_pose_center_ ) );
-    std::vector<double> vec( 3 );
-    ar( cereal::make_nvp( "center_weight", vec ) );
-    center_weight_ = Eigen::Map<const Vec3>( &vec[0] );
-    ar( cereal::make_nvp( "center", vec ) );
-    pose_center_ = Eigen::Map<const Vec3>( &vec[0] );
+    if (b_use_pose_center_)
+    {
+      std::vector<double> vec(3);
+      ar(cereal::make_nvp("center_weight", vec));
+      center_weight_ = Eigen::Map<const Vec3>(&vec[0]);
+      ar(cereal::make_nvp("center", vec));
+      pose_center_ = Eigen::Map<const Vec3>(&vec[0]);
+    }
   }
   catch ( cereal::Exception & e )
   {
@@ -68,24 +69,25 @@ void openMVG::sfm::ViewPriors::load( Archive & ar )
   }
 
   // Pose rotation prior
-  /*
+  ar( cereal::make_nvp( "use_pose_rotation_prior", b_use_pose_rotation_ ) );
   try
   {
-    ar( cereal::make_nvp( "use_pose_rotation_prior", b_use_pose_rotation_ ) );
-    ar( cereal::make_nvp( "rotation_weight", rotation_weight_ ) );
-    std::vector<std::vector<double>> mat( 3, std::vector<double>( 3 ) );
-    ar( cereal::make_nvp( "rotation", mat ) );
-    // copy back to the rotation
-    pose_rotation_.row( 0 ) = Eigen::Map<const Vec3>( &( mat[0][0] ) );
-    pose_rotation_.row( 1 ) = Eigen::Map<const Vec3>( &( mat[1][0] ) );
-    pose_rotation_.row( 2 ) = Eigen::Map<const Vec3>( &( mat[2][0] ) );
+    if (b_use_pose_rotation_)
+    {
+      ar(cereal::make_nvp("rotation_weight", rotation_weight_));
+      std::vector<std::vector<double>> mat(3, std::vector<double>(3));
+      ar(cereal::make_nvp("rotation", mat));
+      // copy back to the rotation
+      pose_rotation_.row(0) = Eigen::Map<const Vec3>(&(mat[0][0]));
+      pose_rotation_.row(1) = Eigen::Map<const Vec3>(&(mat[1][0]));
+      pose_rotation_.row(2) = Eigen::Map<const Vec3>(&(mat[2][0]));
+    }
   }
   catch ( const cereal::Exception & e )
   {
     // if it fails just use a default settings
     b_use_pose_rotation_ = false;
   }
-  */
 }
 
 CEREAL_REGISTER_TYPE_WITH_NAME( openMVG::sfm::ViewPriors, "view_priors" );

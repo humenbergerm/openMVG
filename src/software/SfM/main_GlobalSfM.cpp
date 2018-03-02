@@ -92,7 +92,7 @@ int main(int argc, char **argv)
       <<      "\t\t-> refine the focal length & the distortion coefficient(s) (if any)\n"
       << "\t ADJUST_PRINCIPAL_POINT|ADJUST_DISTORTION\n"
       <<      "\t\t-> refine the principal point position & the distortion coefficient(s) (if any)\n"
-    << "[-P|--prior_usage] Enable usage of motion priors (i.e GPS positions)\n"
+    << "[-P|--prior_usage] Enable usage of motion priors (e.g. GPS positions)\n"
     << "[-M|--match_file] path to the match file to use.\n"
     << std::endl;
 
@@ -122,7 +122,7 @@ int main(int argc, char **argv)
 
   // Load input SfM_Data scene
   SfM_Data sfm_data;
-  if (!Load(sfm_data, sSfM_Data_Filename, ESfM_Data(VIEWS|INTRINSICS))) {
+  if (!Load(sfm_data, sSfM_Data_Filename, ESfM_Data(VIEWS|INTRINSICS|EXTRINSICS))) {
     std::cerr << std::endl
       << "The input SfM_Data file \""<< sSfM_Data_Filename << "\" cannot be read." << std::endl;
     return EXIT_FAILURE;
@@ -191,6 +191,8 @@ int main(int argc, char **argv)
   sfmEngine.Set_Intrinsics_Refinement_Type(intrinsic_refinement_options);
   b_use_motion_priors = cmd.used('P');
   sfmEngine.Set_Use_Motion_Prior(b_use_motion_priors);
+  if (b_use_motion_priors)
+    std::cout << "Using pose priors." << std::endl;
 
   // Configure motion averaging method
   sfmEngine.SetRotationAveragingMethod(

@@ -54,7 +54,8 @@ struct Features_Provider
       {
         const std::string sImageName = stlplus::create_filespec(sfm_data.s_root_path, iter->second->s_Img_path);
         const std::string basename = stlplus::basename_part(sImageName);
-        const std::string featFile = stlplus::create_filespec(feat_directory, basename, ".feat");
+        //const std::string featFile = stlplus::create_filespec(feat_directory, basename, ".feat");
+        const std::string featFile = stlplus::create_filespec(stlplus::folder_append_separator(feat_directory) + stlplus::folder_part(iter->second->s_Img_path), stlplus::basename_part(iter->second->s_Img_path), "feat");
 
         std::unique_ptr<features::Regions> regions(region_type->EmptyClone());
         if (!stlplus::file_exists(featFile) || !regions->LoadFeatures(featFile))
