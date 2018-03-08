@@ -577,7 +577,7 @@ void GlobalSfM_Translation_AveragingSolver::ComputePutativeTranslation_EdgesCove
   }
 
   const double timeLP_triplet = timerLP_triplet.elapsed();
-  std::cout << "TRIPLET COVERAGE TIMING:\n"
+  std::cout << "\nTRIPLET COVERAGE TIMING:\n"
     << "-------------------------------" << "\n"
     << "-- #Relative triplet of translations estimates: " << vec_triplet_relative_motion.size()
     << " computed from " << vec_triplets.size() << " triplets.\n"

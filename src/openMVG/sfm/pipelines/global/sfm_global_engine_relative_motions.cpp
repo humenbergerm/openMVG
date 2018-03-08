@@ -729,7 +729,7 @@ void GlobalSfMReconstructionEngine_RelativeMotions::Compute_Relative_Rotations
     }
   } // for all relative pose
 
-  std::cout << "Relative motion computation took: " << t.elapsedMs() << "(ms)" << std::endl;
+  std::cout << "\nRelative motion computation took: " << t.elapsedMs() << "(ms)" << std::endl;
 
   // Log input graph to the HTML report
   if (!sLogging_file_.empty() && !sOut_directory_.empty())
