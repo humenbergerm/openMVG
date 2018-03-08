@@ -86,7 +86,7 @@ void SfM_Data_Structure_Estimation_From_Known_Poses::match(
   const std::shared_ptr<Regions_Provider> & regions_provider)
 {
   C_Progress_display my_progress_bar( pairs.size(), std::cout,
-    "Compute pairwise fundamental guided matching:\n" );
+    "\nCompute pairwise fundamental guided matching:\n" );
 #ifdef OPENMVG_USE_OPENMP
   #pragma omp parallel
 #endif // OPENMVG_USE_OPENMP
@@ -186,7 +186,7 @@ void SfM_Data_Structure_Estimation_From_Known_Poses::filter(
   const Triplets triplets = graph::TripletListing(pairs);
 
   C_Progress_display my_progress_bar( triplets.size(), std::cout,
-    "Per triplet tracks validation (discard spurious correspondences):\n" );
+    "\nPer triplet tracks validation (discard spurious correspondences):\n" );
 #ifdef OPENMVG_USE_OPENMP
   #pragma omp parallel
 #endif // OPENMVG_USE_OPENMP
@@ -311,7 +311,7 @@ void SfM_Data_Structure_Estimation_From_Known_Poses::triangulate(
 
   SfM_Data_Structure_Computation_Robust structure_estimator(max_reprojection_error_);
   C_Progress_display my_progress_bar( map_tracksCommon.size(), std::cout,
-    "Tracks to structure conversion:\n" );
+    "\nTracks to structure conversion:\n" );
   // Fill sfm_data with the computed tracks (no 3D yet)
 #ifdef OPENMVG_USE_OPENMP
   #pragma omp parallel for schedule(dynamic)
