@@ -178,23 +178,25 @@ int main(int argc, char **argv)
 
   EGeometricModel eGeometricModelToCompute = FUNDAMENTAL_MATRIX;
   std::string sGeometricMatchesFilename = "";
+  if (!sMatchesFileNamePrefix.empty())
+    sMatchesFileNamePrefix = sMatchesFileNamePrefix + "_";
   switch (sGeometricModel[0])
   {
     case 'f': case 'F':
       eGeometricModelToCompute = FUNDAMENTAL_MATRIX;
-      sGeometricMatchesFilename = sMatchesFileNamePrefix + "_matches.f.bin";
+      sGeometricMatchesFilename = sMatchesFileNamePrefix + "matches.f.bin";
     break;
     case 'e': case 'E':
       eGeometricModelToCompute = ESSENTIAL_MATRIX;
-      sGeometricMatchesFilename = sMatchesFileNamePrefix + "_matches.e.bin";
+      sGeometricMatchesFilename = sMatchesFileNamePrefix + "matches.e.bin";
     break;
     case 'h': case 'H':
       eGeometricModelToCompute = HOMOGRAPHY_MATRIX;
-      sGeometricMatchesFilename = sMatchesFileNamePrefix + "_matches.h.bin";
+      sGeometricMatchesFilename = sMatchesFileNamePrefix + "matches.h.bin";
     break;
     case 'a': case 'A':
       eGeometricModelToCompute = ESSENTIAL_MATRIX_ANGULAR;
-      sGeometricMatchesFilename = sMatchesFileNamePrefix + "_matches.f.bin";
+      sGeometricMatchesFilename = sMatchesFileNamePrefix + "matches.f.bin";
     break;
     case 'o': case 'O':
       eGeometricModelToCompute = ESSENTIAL_MATRIX_ORTHO;
@@ -286,12 +288,12 @@ int main(int argc, char **argv)
   std::cout << std::endl << " - PUTATIVE MATCHES - " << std::endl;
   // If the matches already exists, reload them
   if (!bForce
-        && (stlplus::file_exists(sMatchesDirectory + "/" + sMatchesFileNamePrefix + "_matches.putative.txt")
-        || stlplus::file_exists(sMatchesDirectory + "/" + sMatchesFileNamePrefix + "_matches.putative.bin"))
+        && (stlplus::file_exists(sMatchesDirectory + "/" + sMatchesFileNamePrefix + "matches.putative.txt")
+        || stlplus::file_exists(sMatchesDirectory + "/" + sMatchesFileNamePrefix + "matches.putative.bin"))
   )
   {
-    if (!(Load(map_PutativesMatches, sMatchesDirectory + "/" + sMatchesFileNamePrefix + "_matches.putative.bin") ||
-          Load(map_PutativesMatches, sMatchesDirectory + "/" + sMatchesFileNamePrefix + "_matches.putative.txt")) )
+    if (!(Load(map_PutativesMatches, sMatchesDirectory + "/" + sMatchesFileNamePrefix + "matches.putative.bin") ||
+          Load(map_PutativesMatches, sMatchesDirectory + "/" + sMatchesFileNamePrefix + "matches.putative.txt")) )
     {
       std::cerr << "Cannot load input matches file";
       return EXIT_FAILURE;
@@ -381,11 +383,11 @@ int main(int argc, char **argv)
       //---------------------------------------
       //-- Export putative matches
       //---------------------------------------
-      if (!Save(map_PutativesMatches, std::string(sMatchesDirectory + "/" + sMatchesFileNamePrefix + "_matches.putative.bin")))
+      if (!Save(map_PutativesMatches, std::string(sMatchesDirectory + "/" + sMatchesFileNamePrefix + "matches.putative.bin")))
       {
         std::cerr
           << "Cannot save computed matches in: "
-          << std::string(sMatchesDirectory + "/" + sMatchesFileNamePrefix + "_matches.putative.bin");
+          << std::string(sMatchesDirectory + "/" + sMatchesFileNamePrefix + "matches.putative.bin");
         return EXIT_FAILURE;
       }
     }
@@ -394,7 +396,7 @@ int main(int argc, char **argv)
   //-- export putative matches Adjacency matrix
   PairWiseMatchingToAdjacencyMatrixSVG(vec_fileNames.size(),
     map_PutativesMatches,
-    stlplus::create_filespec(sMatchesDirectory, sMatchesFileNamePrefix + "_PutativeAdjacencyMatrix", "svg"));
+    stlplus::create_filespec(sMatchesDirectory, sMatchesFileNamePrefix + "PutativeAdjacencyMatrix", "svg"));
   //-- export view pair graph once putative graph matches have been computed
   {
     std::set<IndexT> set_ViewIds;
@@ -402,7 +404,7 @@ int main(int argc, char **argv)
       std::inserter(set_ViewIds, set_ViewIds.begin()), stl::RetrieveKey());
     graph::indexedGraph putativeGraph(set_ViewIds, getPairs(map_PutativesMatches));
     graph::exportToGraphvizData(
-      stlplus::create_filespec(sMatchesDirectory, sMatchesFileNamePrefix + "_putative_matches"),
+      stlplus::create_filespec(sMatchesDirectory, sMatchesFileNamePrefix + "putative_matches"),
       putativeGraph);
   }
 
@@ -504,7 +506,7 @@ int main(int argc, char **argv)
       << std::endl;
     PairWiseMatchingToAdjacencyMatrixSVG(vec_fileNames.size(),
       map_GeometricMatches,
-      stlplus::create_filespec(sMatchesDirectory, sMatchesFileNamePrefix + "_GeometricAdjacencyMatrix", "svg"));
+      stlplus::create_filespec(sMatchesDirectory, sMatchesFileNamePrefix + "GeometricAdjacencyMatrix", "svg"));
 
     //-- export view pair graph once geometric filter have been done
     {
@@ -513,7 +515,7 @@ int main(int argc, char **argv)
         std::inserter(set_ViewIds, set_ViewIds.begin()), stl::RetrieveKey());
       graph::indexedGraph putativeGraph(set_ViewIds, getPairs(map_GeometricMatches));
       graph::exportToGraphvizData(
-        stlplus::create_filespec(sMatchesDirectory, sMatchesFileNamePrefix + "_geometric_matches"),
+        stlplus::create_filespec(sMatchesDirectory, sMatchesFileNamePrefix + "geometric_matches"),
         putativeGraph);
     }
   }

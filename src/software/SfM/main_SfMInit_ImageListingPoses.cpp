@@ -30,30 +30,15 @@ using namespace openMVG::geodesy;
 using namespace openMVG::image;
 using namespace openMVG::sfm;
 
-// function for finding the biggest common root dir from two paths
+// Naive function for finding the biggest common root dir from two paths
 std::string FindCommonRootDir(const std::string & dir1, const std::string & dir2)
 {
-  std::vector<std::string> dirs1 = stlplus::folder_elements(dir1);
-  std::vector<std::string> dirs2 = stlplus::folder_elements(dir2);
-
-  int smaller_dir;
-  if (dirs1.size() < dirs2.size())
-    smaller_dir = dirs1.size();
-  else
-    smaller_dir = dirs2.size();
-
-  std::string common_dir = "";
-  common_dir = stlplus::folder_append_separator(common_dir);
-  int i;
-  for (i = 0; i < smaller_dir; i++)
+  int i = 0;
+  for (; i != std::min(dir1.size(), dir2.size()); i++)
   {
-    if (dirs1[i] != dirs2[i])
-      break;
-    else
-      common_dir += stlplus::folder_append_separator(dirs1[i]);
+    if (dir1[i] != dir2[i]) break;
   }
-
-  return stlplus::folder_remove_end_separator(common_dir);
+  return dir1.substr(0,i);
 }
 
 /// Check that Kmatrix is a string like "f;0;ppx;0;f;ppy;0;0;1"
@@ -980,12 +965,9 @@ int main(int argc, char **argv)
     // if parent folder of image directory should be root of sfm_data
     if (cmd.used('B'))
     {
-      std::vector<std::string> elems = stlplus::folder_elements(sImageDir);
-      std::string root_dir = "";
-      root_dir = stlplus::folder_append_separator(root_dir);
-      for (int i = 0; i < elems.size()-1; i++)
-        root_dir += stlplus::folder_append_separator(elems[i]);
-      sfm_data.s_root_path = stlplus::folder_remove_end_separator(root_dir);
+      // first, remove the folder separator (if there is one at the end of sImageDir)
+      // second, take the folder part (which is everything till the last separator) as root path
+      sfm_data.s_root_path = stlplus::folder_part(stlplus::folder_remove_end_separator(sImageDir));
 
       for (auto &view : sfm_data.GetViews())
       {
