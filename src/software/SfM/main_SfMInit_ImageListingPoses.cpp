@@ -722,20 +722,11 @@ int main(int argc, char **argv)
     const std::string sImageFilename = stlplus::create_filespec(sImageDir, *iter_image);
     const std::string sImFilenamePart = stlplus::filename_part(sImageFilename);
 
+    // the camera name is the name of the image directory
     std::string camname;
-    {
-      std::vector<std::string> values;
-      stl::split(sImFilenamePart, '_', values);
-      if (values.size() < 2)
-      {
-        std::cerr << "Image name parsing error, cannot get camera name from " << sImFilenamePart << "\n";
-        return EXIT_FAILURE;
-      }
-      else
-      {
-        camname = values[0];
-      }
-    }
+    std::vector<std::string> values;
+    values = stlplus::folder_elements(sImageDir);
+    camname = values[values.size()-1];
 
     // Test if the image format is supported:
     if (openMVG::image::GetFormat(sImageFilename.c_str()) == openMVG::image::Unknown)
@@ -759,12 +750,20 @@ int main(int argc, char **argv)
     width = imgHeader.width;
     height = imgHeader.height;
 
-    if (!intrinsic_list.empty() && intrinsic_list.find(camname) != intrinsic_list.end())
+    if (!intrinsic_list.empty())
     {
-      std::vector<double> camera_params = intrinsic_list[camname]->getParams();
-      focal = camera_params[0];
-      ppx = camera_params[1];
-      ppy = camera_params[2];
+      if (intrinsic_list.find(camname) != intrinsic_list.end())
+      {
+        std::vector<double> camera_params = intrinsic_list[camname]->getParams();
+        focal = camera_params[0];
+        ppx = camera_params[1];
+        ppy = camera_params[2];
+      }
+      else
+      {
+        std::cerr << "Camera was not found in calibration file!" << std::endl;
+        return EXIT_FAILURE;
+      }
     }
     else if (!map_Cam_gt.empty() && map_Cam_gt.find(index) != map_Cam_gt.end())
     {

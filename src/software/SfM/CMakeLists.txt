@@ -37,6 +37,8 @@ target_link_libraries(openMVG_main_ConvertList
 # Installation rules
 set_property(TARGET openMVG_main_SfMInit_ImageListing PROPERTY FOLDER OpenMVG/software)
 install(TARGETS openMVG_main_SfMInit_ImageListing DESTINATION bin/)
+set_property(TARGET openMVG_main_SfMInit_ImageListingPoses PROPERTY FOLDER OpenMVG/software)
+install(TARGETS openMVG_main_SfMInit_ImageListingPoses DESTINATION bin/)
 set_property(TARGET openMVG_main_ConvertList PROPERTY FOLDER OpenMVG/software)
 install(TARGETS openMVG_main_ConvertList DESTINATION bin/)
 
