@@ -107,6 +107,17 @@ int main(int argc, char **argv)
     return EXIT_FAILURE;
   }
 
+  std::cout << " You called : " << "\n"
+            << argv[0] << "\n"
+            << "--input_file " << sSfM_Data_Filename << "\n"
+            << "--match_dir " << sMatchesDir << "\n"
+            << "--output_file " << sOutFile << "\n"
+            << "--pair_file " << sPairFile << "\n"
+            << "--match_file " << sMatchFile << "\n"
+            << "--bundle_adjustment " << cmd.used('b') << "\n"
+            << "--direct_triangulation " << cmd.used('d') << "\n"
+            << "--residual_threshold " << dMax_reprojection_error << "\n";
+
   // Load input SfM_Data scene
   SfM_Data sfm_data;
   if (!Load(sfm_data, sSfM_Data_Filename, ESfM_Data(VIEWS|INTRINSICS|EXTRINSICS))) {

@@ -391,7 +391,7 @@ int main(int argc, char **argv)
         return EXIT_FAILURE;
       }
     }
-    std::cout << "Task (Regions Matching) done in (s): " << timer.elapsed() << std::endl;
+    std::cout << "\nTask (Regions Matching) done in (s): " << timer.elapsed() << std::endl;
   }
   //-- export putative matches Adjacency matrix
   PairWiseMatchingToAdjacencyMatrixSVG(vec_fileNames.size(),
