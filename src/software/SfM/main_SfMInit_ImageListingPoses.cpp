@@ -38,7 +38,10 @@ std::string FindCommonRootDir(const std::string & dir1, const std::string & dir2
   {
     if (dir1[i] != dir2[i]) break;
   }
-  return stlplus::folder_part(dir1.substr(0,i));
+  if (stlplus::is_folder(dir1.substr(0,i)))
+    return dir1.substr(0,i);
+  else
+    return stlplus::folder_part(dir1.substr(0,i));
 }
 
 /// Check that Kmatrix is a string like "f;0;ppx;0;f;ppy;0;0;1"
