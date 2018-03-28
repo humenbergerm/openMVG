@@ -38,7 +38,7 @@ std::string FindCommonRootDir(const std::string & dir1, const std::string & dir2
   {
     if (dir1[i] != dir2[i]) break;
   }
-  return dir1.substr(0,i);
+  return stlplus::folder_part(dir1.substr(0,i));
 }
 
 /// Check that Kmatrix is a string like "f;0;ppx;0;f;ppy;0;0;1"
@@ -232,6 +232,73 @@ std::vector<geometry::Pose3> loadPosesNLK(const std::string &filename)
   }
 
   ifs.close();
+
+  return vec_poses;
+}
+
+double closest_elem_in_map(std::map<double, std::pair<Mat3, Vec3>> const& map, double value)
+{
+  auto it = map.lower_bound(value);
+  if (it == map.end())
+  {
+    it = map.upper_bound(value);
+  }
+
+  return it->first;
+}
+
+/// load poses in TUM format
+std::vector<geometry::Pose3> loadPosesTUM(const std::string &filename, const std::vector<std::string> &vec_image)
+{
+  std::ifstream ifs(filename.c_str(), std::ifstream::in);
+
+  if (!ifs.is_open())
+  {
+    std::cerr << "Error: file " + filename + " does not exist!" << std::endl;
+    exit(1);
+  }
+
+  std::map<double, std::pair<Mat3, Vec3>> map_time_pose;
+  std::vector<geometry::Pose3> vec_poses;
+
+  while (!ifs.eof())
+  {
+    double cx = 0.f, cy = 0.f, cz = 0.f;
+    double qx = 0.f, qy = 0.f, qz = 0.f, qw = 1.f;
+    double timestamp = 0.f;
+
+    std::string line("");
+    getline(ifs, line);
+
+    if (line != "" && line[0] != '#')
+    {
+      sscanf(line.c_str(), "%lf %lf %lf %lf %lf %lf %lf %lf", &timestamp, &cx, &cy, &cz, &qx, &qy, &qz, &qw);
+
+      // needed to rotate the NLK orientations to the notation used in openMVG (z axis points into camera viewing direction)
+      //Quaternion qtr(0.5, 0.5, -0.5, 0.5); // Euler angles: order x,y,z -> 90deg,0,90deg
+
+      Quaternion qt(qw, qx, qy, qz);
+      Vec3 center(cx, cy, cz);
+
+      Mat3 Rw = qt.toRotationMatrix();
+      Mat3 R = Rw.transpose();  // needed to be inverted (transposed) because NLK format defines the camera pose in the world frame and openMVG needs the rotation of the extrinsic camera parameters, which is the inverse of the rotation part of the pose
+      //Mat3 R = qtr.toRotationMatrix() * Rwt;
+
+      map_time_pose.insert({timestamp, {R, center}});
+    }
+  }
+
+  ifs.close();
+
+  for (auto & file_name : vec_image)
+  {
+    std::string str = stlplus::basename_part(file_name);
+    double timestamp_file = atof(str.c_str());
+    double key = closest_elem_in_map(map_time_pose, timestamp_file);
+    std::pair<Mat3, Vec3> pose_pair = map_time_pose[key];
+    geometry::Pose3 pose(pose_pair.first, pose_pair.second);
+    vec_poses.push_back(pose);
+  }
 
   return vec_poses;
 }
@@ -495,10 +562,11 @@ int main(int argc, char **argv)
               << "[-o|--outputDirectory] sfm data and camera files will be written to this directory\n"
               << "[-t|--gtPath] path to ground truth data\n"
               << "[-s|--gtType] ground truth type \n"
-              << "\t 1: (default) NLK trajectory file (format of poses in file: timestamp, x, y, z, qw, qx, qy, qz)\n"
+              << "\t 1: (default) NLK trajectory file (format of poses in file: camname x y z qw qx qy qz)\n"
               << "\t\t gtPath needs to be the full path to the trajectory file\n"
               << "\t 2: Strecha's format\n"
               << "\t\t gtPath needs to be the full path to directory containing the camera files\n"
+              << "\t 3: TUM trajectory file (format of poses in file: timestamp x y z qx qy qz qw)\n"
               << "[-T|--use_traj_prior_center] Use center of trajectory as pose prior\n"
               << "[-R|--use_traj_prior_rot] Use rotation of trajectory as pose prior\n"
               << "[-d|--sensorWidthDatabase]\n"
@@ -619,7 +687,7 @@ int main(int argc, char **argv)
   }
 
   // read images
-  std::vector<std::string> vec_image = stlplus::folder_files(sImageDir);
+  std::vector<std::string> vec_image = stlplus::folder_files(sImageDir); // contains a list of filenames (1234.567.png, 678.989.png, ...)
   std::sort(vec_image.begin(), vec_image.end());
 
   // read poses
@@ -672,6 +740,10 @@ int main(int argc, char **argv)
         i_User_camera_model = PINHOLE_CAMERA_BROWN;
         break;
       }
+      case 3:
+        // load TUM format
+        vec_poses = loadPosesTUM(sGroundTruthPath, vec_image);
+        break;
       default:
         std::cerr << "Unsupported ground truth type." << std::endl;
         return EXIT_FAILURE;
