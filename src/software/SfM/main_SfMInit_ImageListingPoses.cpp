@@ -239,6 +239,63 @@ std::vector<geometry::Pose3> loadPosesNLK(const std::string &filename)
   return vec_poses;
 }
 
+/// load poses in NLE format
+std::vector<geometry::Pose3> loadPosesNLE(const std::string &filename, std::map< std::string, std::pair<Mat3, Vec3>> &map_img_poses)
+{
+  std::ifstream ifs(filename.c_str(), std::ifstream::in);
+
+  if (!ifs.is_open())
+  {
+    std::cerr << "Error: file " + filename + " does not exist!" << std::endl;
+    exit(1);
+  }
+
+  std::vector<geometry::Pose3> vec_poses;
+  map_img_poses.clear();
+
+  while (!ifs.eof())
+  {
+    char imgname[1024];
+    //double cx = 0.f, cy = 0.f, cz = 0.f;
+    //double qx, qy, qz, qw;
+    double p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16;
+
+    std::string line("");
+    getline(ifs, line);
+
+    if (line != "")
+    {
+      sscanf(line.c_str(), "%s %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf", imgname,
+             &p1, &p5, &p9,  &p13,
+             &p2, &p6, &p10, &p14,
+             &p3, &p7, &p11, &p15,
+             &p4, &p8, &p12, &p16);
+
+      Quaternion qtr(0.0, 1, 0.0, 0.0); // Euler angles: order x,y,z -> 0,180deg,180deg
+
+      //Quaternion qt(qw, qx, qy, qz);
+      Vec3 center(p4, p8, p12);
+
+      Mat3 Rw;
+      Rw << p1, p2, p3, p5, p6, p7, p9, p10, p11;
+      Mat3 Rwt = Rw.transpose();  // needed to be inverted (transposed) because this format defines the camera pose in the world frame and openMVG needs the rotation of the extrinsic camera parameters, which is the inverse of the rotation part of the pose
+      Mat3 R = qtr.toRotationMatrix() * Rwt;
+
+      geometry::Pose3 pose(R, center);
+      vec_poses.push_back(pose);
+
+      std::pair<Mat3, Vec3> Rt;
+      Rt.first = R;
+      Rt.second = center;
+      map_img_poses[imgname] = Rt;
+    }
+  }
+
+  ifs.close();
+
+  return vec_poses;
+}
+
 double closest_elem_in_map(std::map<double, std::pair<Mat3, Vec3>> const& map, double value)
 {
   auto it = map.lower_bound(value);
@@ -570,6 +627,7 @@ int main(int argc, char **argv)
               << "\t 2: Strecha's format\n"
               << "\t\t gtPath needs to be the full path to directory containing the camera files\n"
               << "\t 3: TUM trajectory file (format of poses in file: timestamp x y z qx qy qz qw)\n"
+              << "\t 4: NLE file (format of poses in file: imagename p1 p2 p3 p4 p5 ... p16)\n"
               << "[-T|--use_traj_prior_center] Use center of trajectory as pose prior\n"
               << "[-R|--use_traj_prior_rot] Use rotation of trajectory as pose prior\n"
               << "[-d|--sensorWidthDatabase]\n"
@@ -700,7 +758,7 @@ int main(int argc, char **argv)
   //Setup the camera type and the appropriate camera reader
   bool (*fcnReadCamPtr)(const std::string &, PinholeCamera &);
   std::string suffix;
-  std::map< std::string, std::pair<Mat3, Vec3>> map_Rt_gt;
+  std::map< std::string, std::pair<Mat3, Vec3>> map_Rt_gt, map_img_pose;
   std::map<size_t, PinholeCamera, std::less<size_t>,
     Eigen::aligned_allocator<std::pair<const size_t, PinholeCamera>>> map_Cam_gt;
 
@@ -746,6 +804,23 @@ int main(int argc, char **argv)
       case 3:
         // load TUM format
         vec_poses = loadPosesTUM(sGroundTruthPath, vec_image);
+        break;
+      case 4:
+        // load NLE format
+        vec_poses = loadPosesNLE(sGroundTruthPath, map_img_pose);
+        // convert to vector
+        if (map_img_pose.empty())
+        {
+          std::cout << "No GT found. Aborting..." << std::endl;
+          return EXIT_FAILURE;
+        }
+        vec_poses.clear();
+        for (int i = 0; i < vec_image.size(); i++)
+        {
+          std::pair<Mat3,Vec3> val = map_img_pose[vec_image[i]];
+          Pose3 pose(val.first, val.second);
+          vec_poses.push_back(pose);
+        }
         break;
       default:
         std::cerr << "Unsupported ground truth type." << std::endl;
@@ -806,7 +881,7 @@ int main(int argc, char **argv)
     // Test if the image format is supported:
     if (openMVG::image::GetFormat(sImageFilename.c_str()) == openMVG::image::Unknown)
     {
-      error_report_stream << sImFilenamePart << ": Unkown image file format." << "\n";
+      error_report_stream << sImFilenamePart << ": Unknown image file format." << "\n";
       continue; // image cannot be opened
     }
 
