@@ -141,54 +141,6 @@ std::pair<bool, Vec3> checkPriorWeightsString(const std::string &sWeights)
   return val;
 }
 
-/// Check that T is a string like "qw;qx;qy;qz"
-/// with qw,qx,qy,qz as valid numerical values
-/// and convert it to qT and tT.
-/*bool checkTransformStringValidity(const std::string & T, Eigen::Quaterniond & qT, Eigen::Vector3d & tT)
-{
-  std::vector<std::string> vec_str;
-  stl::split(T, ';', vec_str);
-  if (vec_str.size() != 7)  {
-    std::cerr << "\n Missing ';' character or wrong format" << std::endl;
-    return false;
-  }
-  double tmp[7];
-  // Check that all K matrix value are valid numbers
-  for (size_t i = 0; i < vec_str.size(); ++i)
-  {
-    double readvalue = 0.0;
-    std::stringstream ss;
-    ss.str(vec_str[i]);
-    if (! (ss >> readvalue) )  {
-      std::cerr << "\n Used an invalid not a number character" << std::endl;
-      return false;
-    }
-    tmp[i] = readvalue;
-  }
-  tT.x() = tmp[0];
-  tT.y() = tmp[1];
-  tT.z() = tmp[2];
-  qT.w() = tmp[3];
-  qT.x() = tmp[4];
-  qT.y() = tmp[5];
-  qT.z() = tmp[6];
-  return true;
-}*/
-
-/**
-* @brief Transform pose p
-* @param p pose to transform
-* @param q quaternion (rotation part of transform)
-* @param t 3d vector (translation part of transform)
-* @return new_pose.center = q*p.center + t
-*         new_pose.rotation = q*p.rotation
-*/
-/*geometry::Pose3 transformPose3(const geometry::Pose3 & p, const Eigen::Quaterniond & q, const Eigen::Vector3d & t)
-{
-  return {q.toRotationMatrix() * p.rotation(),
-          q.toRotationMatrix() * p.center() + t};
-}*/
-
 /// load poses in NLK format
 std::vector<geometry::Pose3> loadPosesNLK(const std::string &filename)
 {
@@ -288,6 +240,67 @@ std::vector<geometry::Pose3> loadPosesNLE(const std::string &filename, std::map<
       Rt.first = R;
       Rt.second = center;
       map_img_poses[imgname] = Rt;
+    }
+  }
+
+  ifs.close();
+
+  return vec_poses;
+}
+
+/// load poses in NLE format
+std::vector<geometry::Pose3> loadPosesNLEcombined(const std::string &filename, std::map< std::string, std::pair<Mat3, Vec3>> &map_img_poses, std::map<std::string, std::shared_ptr<openMVG::cameras::IntrinsicBase>> &map_img_intrinsics)
+{
+  std::ifstream ifs(filename.c_str(), std::ifstream::in);
+
+  if (!ifs.is_open())
+  {
+    std::cerr << "Error: file " + filename + " does not exist!" << std::endl;
+    exit(1);
+  }
+
+  std::vector<geometry::Pose3> vec_poses;
+  map_img_poses.clear();
+
+  // ignore the first line
+  std::string line("");
+  getline(ifs, line);
+
+  // imname	CX	CY	CZ	qw	qx	qy	qz	width	height	fx	fy	cx	cy	k1	k2	p1	p2	k3	k4	k5	k6
+  while (!ifs.eof())
+  {
+    char imgname[1024];
+    double x = 0.f, y = 0.f, z = 0.f;
+    double qx = 0.f, qy = 0.f, qz = 0.f, qw = 0.f;
+    double fx = 0.f, fy = 0.f, cx = 0.f, cy = 0.f;
+    double k1 = 0.f, k2 = 0.f, k3 = 0.f, k4 = 0.f, k5 = 0.f, k6 = 0.f, p1 = 0.f, p2 = 0.f;
+    double w = 0.f, h = 0.f;
+
+    getline(ifs, line);
+
+    if (line != "")
+    {
+      sscanf(line.c_str(), "%s %lf %lf %lf  %lf  %lf  %lf  %lf  %lf %lf %lf  %lf  %lf  %lf  %lf  %lf  %lf  %lf  %lf  %lf  %lf  %lf",
+                       imgname, &x, &y, &z, &qw, &qx, &qy, &qz, &w, &h, &fx, &fy, &cx, &cy, &k1, &k2, &p1, &p2, &k3, &k4, &k5, &k6);
+
+      // pose
+      Quaternion qt(qw, qx, qy, qz);
+      Vec3 center(x, y, z);
+
+      Mat3 R = qt.toRotationMatrix();
+      geometry::Pose3 pose(R, center);
+      vec_poses.push_back(pose);
+
+      std::pair<Mat3, Vec3> Rt;
+      Rt.first = R;
+      Rt.second = center;
+      map_img_poses[imgname] = Rt;
+
+      // camera intrinsics
+      double focal = (fx + fy) / 2.0;
+      map_img_intrinsics[imgname] = std::make_shared<openMVG::cameras::Pinhole_Intrinsic_Brown_T2>(w, h, focal,
+                                                                                                 cx, cy, k1, k2,
+                                                                                                 k3, p1, p2);
     }
   }
 
@@ -628,6 +641,7 @@ int main(int argc, char **argv)
               << "\t\t gtPath needs to be the full path to directory containing the camera files\n"
               << "\t 3: TUM trajectory file (format of poses in file: timestamp x y z qx qy qz qw)\n"
               << "\t 4: NLE file (format of poses in file: imagename p1 p2 p3 p4 p5 ... p16)\n"
+              << "\t 5: NLE combined format (imname\tCX\tCY\tCZ\tqw\tqx\tqy\tqz\twidth\theight\tfx\tfy\tcx\tcy\tk1\tk2\tp1\tp2\tk3\tk4\tk5\tk6)"
               << "[-T|--use_traj_prior_center] Use center of trajectory as pose prior\n"
               << "[-R|--use_traj_prior_rot] Use rotation of trajectory as pose prior\n"
               << "[-d|--sensorWidthDatabase]\n"
@@ -758,7 +772,8 @@ int main(int argc, char **argv)
   //Setup the camera type and the appropriate camera reader
   bool (*fcnReadCamPtr)(const std::string &, PinholeCamera &);
   std::string suffix;
-  std::map< std::string, std::pair<Mat3, Vec3>> map_Rt_gt, map_img_pose;
+  std::map<std::string, std::pair<Mat3, Vec3>> map_Rt_gt, map_img_pose;
+  std::map<std::string, std::shared_ptr<openMVG::cameras::IntrinsicBase>> map_img_intrinsics;
   std::map<size_t, PinholeCamera, std::less<size_t>,
     Eigen::aligned_allocator<std::pair<const size_t, PinholeCamera>>> map_Cam_gt;
 
@@ -808,6 +823,23 @@ int main(int argc, char **argv)
       case 4:
         // load NLE format
         vec_poses = loadPosesNLE(sGroundTruthPath, map_img_pose);
+        // convert to vector
+        if (map_img_pose.empty())
+        {
+          std::cout << "No GT found. Aborting..." << std::endl;
+          return EXIT_FAILURE;
+        }
+        vec_poses.clear();
+        for (int i = 0; i < vec_image.size(); i++)
+        {
+          std::pair<Mat3,Vec3> val = map_img_pose[vec_image[i]];
+          Pose3 pose(val.first, val.second);
+          vec_poses.push_back(pose);
+        }
+        break;
+      case 5:
+        // load NLE combined format
+        vec_poses = loadPosesNLEcombined(sGroundTruthPath, map_img_pose, map_img_intrinsics);
         // convert to vector
         if (map_img_pose.empty())
         {
@@ -922,6 +954,13 @@ int main(int argc, char **argv)
       ppx = cam._K(0,2);
       ppy = cam._K(1,2);
     }
+    else if (!map_img_intrinsics.empty())
+    {
+      std::vector<double> camera_params = map_img_intrinsics[sImFilenamePart]->getParams();
+      focal = camera_params[0];
+      ppx = camera_params[1];
+      ppy = camera_params[2];
+    }
     else
     {
       ppx = width / 2.0;
@@ -985,7 +1024,11 @@ int main(int argc, char **argv)
     // Build intrinsic parameter related to the view
     std::shared_ptr<IntrinsicBase> intrinsic;
 
-    if (!intrinsic_list.empty() && intrinsic_list.find(camname) != intrinsic_list.end() && !camname.empty())
+    if (map_img_intrinsics.find(sImFilenamePart) != map_img_intrinsics.end())
+    {
+      intrinsic = map_img_intrinsics[sImFilenamePart];
+    }
+    else if (!intrinsic_list.empty() && intrinsic_list.find(camname) != intrinsic_list.end() && !camname.empty())
     {
       intrinsic = intrinsic_list[camname];
     }
