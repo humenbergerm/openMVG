@@ -171,7 +171,7 @@ int main(int argc, char **argv)
 
   if (bDirect_triangulation)
   {
-    // Check that a match file have been provided
+    // Check that a match file has been provided
     if (sMatchFile.empty() || !sPairFile.empty())
     {
       std::cerr << "You must provide a match file thanks to the [--f|--match_file] option" << std::endl;
