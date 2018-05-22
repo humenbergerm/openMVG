@@ -257,8 +257,8 @@ find_package(Eigen QUIET)
 # - internal by default (ceres-solver+cxsparse+miniglog),
 # - external if CERES_DIR_HINTS and find_package return a valid Ceres setup
 # ==============================================================================
-find_package(Ceres QUIET HINTS ${CERES_DIR_HINTS})
-if (NOT Ceres_FOUND)
+#find_package(Ceres QUIET HINTS ${CERES_DIR_HINTS})
+#if (NOT Ceres_FOUND)
   set(OpenMVG_USE_INTERNAL_CERES ON)
   set(CERES_INCLUDE_DIRS
     ${CMAKE_CURRENT_SOURCE_DIR}/third_party/ceres-solver/include
@@ -267,7 +267,7 @@ if (NOT Ceres_FOUND)
     FILE(READ "${CMAKE_CURRENT_SOURCE_DIR}/third_party/ceres-solver/VERSION" CERES_CONFIG)
     STRING(REGEX REPLACE "version ([0-9.]+).*" "\\1" CERES_VERSION ${CERES_CONFIG})
   set(CERES_LIBRARIES ceres cxsparse)
-endif()
+#endif()
 
 # ==============================================================================
 # Flann
