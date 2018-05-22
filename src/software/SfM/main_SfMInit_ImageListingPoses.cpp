@@ -640,7 +640,8 @@ int main(int argc, char **argv)
               << "\t 2: Strecha's format\n"
               << "\t\t gtPath needs to be the full path to directory containing the camera files\n"
               << "\t 3: TUM trajectory file (format of poses in file: timestamp x y z qx qy qz qw)\n"
-              << "\t 4: NLE combined format (imname\tCX\tCY\tCZ\tqw\tqx\tqy\tqz\twidth\theight\tfx\tfy\tcx\tcy\tk1\tk2\tp1\tp2\tk3\tk4\tk5\tk6)"
+              << "\t 4: NLE file (format of poses in file: imagename p1 p2 p3 p4 p5 ... p16)\n"
+              << "\t 5: NLE combined format (imname\tCX\tCY\tCZ\tqw\tqx\tqy\tqz\twidth\theight\tfx\tfy\tcx\tcy\tk1\tk2\tp1\tp2\tk3\tk4\tk5\tk6)\n"
               << "[-T|--use_traj_prior_center] Use center of trajectory as pose prior\n"
               << "[-R|--use_traj_prior_rot] Use rotation of trajectory as pose prior\n"
               << "[-d|--sensorWidthDatabase]\n"
@@ -820,6 +821,23 @@ int main(int argc, char **argv)
         vec_poses = loadPosesTUM(sGroundTruthPath, vec_image);
         break;
       case 4:
+        // load NLE format
+        vec_poses = loadPosesNLE(sGroundTruthPath, map_img_pose);
+        // convert to vector
+        if (map_img_pose.empty())
+        {
+          std::cout << "No GT found. Aborting..." << std::endl;
+          return EXIT_FAILURE;
+        }
+        vec_poses.clear();
+        for (int i = 0; i < vec_image.size(); i++)
+        {
+          std::pair<Mat3,Vec3> val = map_img_pose[vec_image[i]];
+          Pose3 pose(val.first, val.second);
+          vec_poses.push_back(pose);
+        }
+        break;
+      case 5:
         // load NLE combined format
         vec_poses = loadPosesNLEcombined(sGroundTruthPath, map_img_pose, map_img_intrinsics);
         // convert to vector
