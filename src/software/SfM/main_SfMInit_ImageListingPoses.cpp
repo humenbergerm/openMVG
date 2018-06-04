@@ -858,8 +858,13 @@ int main(int argc, char **argv)
 
   if (vec_image.size() != vec_poses.size() && !sGroundTruthPath.empty())
   {
-    std::cerr << "Number of poses is not equal to number of images!" << std::endl;
-    return EXIT_FAILURE;
+    if (i_gt_type == 4 || i_gt_type == 5)
+      std::cerr << "Number of poses is not equal to number of images! Only images with available pose will be used." << std::endl;
+    else
+    {
+      std::cerr << "Number of poses is not equal to number of images!" << std::endl;
+      return EXIT_FAILURE;
+    }
   }
 
   // Configure an empty scene with Views and their corresponding cameras and poses
@@ -905,6 +910,10 @@ int main(int argc, char **argv)
     std::vector<std::string> values;
     values = stlplus::folder_elements(sImageDir);
     camname = values[values.size()-1];
+
+    // skip image if no valid pose was found
+    if (map_img_pose.find(sImFilenamePart) == map_img_pose.end() && (i_gt_type == 4 || i_gt_type == 5))
+      continue;
 
     // Test if the image format is supported:
     if (openMVG::image::GetFormat(sImageFilename.c_str()) == openMVG::image::Unknown)
@@ -1131,7 +1140,10 @@ int main(int argc, char **argv)
       }
 
       if (!sGroundTruthPath.empty())
-        poses[poses.size()] = *iter_poses;
+      {
+        Pose3 pose(map_img_pose[sImFilenamePart].first, map_img_pose[sImFilenamePart].second);
+        poses[poses.size()] = pose;
+      }
     }
 
     // Write poses as camera files
