@@ -93,10 +93,11 @@ public:
   (
     const Regions * regions,
     const std::string& sfileNameFeats,
-    const std::string& sfileNameDescs
+    const std::string& sfileNameDescs,
+    bool bExportToColmap
   ) const
   {
-    return regions->Save(sfileNameFeats, sfileNameDescs);
+    return regions->Save(sfileNameFeats, sfileNameDescs, bExportToColmap);
   };
 
   virtual bool LoadFeatures
