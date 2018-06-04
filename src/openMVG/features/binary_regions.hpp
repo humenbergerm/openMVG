@@ -59,7 +59,8 @@ public:
   /// Export in two separate files the regions and their corresponding descriptors.
   bool Save(
     const std::string& sfileNameFeats,
-    const std::string& sfileNameDescs) const override
+    const std::string& sfileNameDescs,
+    bool bExportToColmap) const override
   {
     return saveFeatsToFile(sfileNameFeats, vec_feats_)
           & saveDescsToBinFile(sfileNameDescs, vec_descs_);

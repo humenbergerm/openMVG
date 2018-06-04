@@ -81,6 +81,7 @@ int main(int argc, char **argv)
   cmd.add( make_option('u', bUpRight, "upright") );
   cmd.add( make_option('f', bForce, "force") );
   cmd.add( make_option('p', sFeaturePreset, "describerPreset") );
+  cmd.add( make_switch('c', "export_to_Colmap") );
 
 #ifdef OPENMVG_USE_OPENMP
   cmd.add( make_option('n', iNumThreads, "numThreads") );
@@ -107,6 +108,7 @@ int main(int argc, char **argv)
       << "   NORMAL (default),\n"
       << "   HIGH,\n"
       << "   ULTRA: !!Can take long time!!\n"
+      << "[-c|--export_to_Colmap] export features in Colmap format"
 #ifdef OPENMVG_USE_OPENMP
       << "[-n|--numThreads] number of parallel computations\n"
 #endif
@@ -344,12 +346,15 @@ int main(int argc, char **argv)
 
         // Compute features and descriptors and export them to files
         auto regions = image_describer->Describe(imageGray, mask);
-        if (regions && !image_describer->Save(regions.get(), sFeat, sDesc)) {
+        if (regions && !image_describer->Save(regions.get(), sFeat, sDesc, cmd.used('c'))) {
           std::cerr << "Cannot save regions for images: " << sView_filename << std::endl
                     << "Stopping feature extraction." << std::endl;
           preemptive_exit = true;
           continue;
         }
+
+
+
       }
       ++my_progress_bar;
     }

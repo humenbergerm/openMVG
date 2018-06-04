@@ -347,15 +347,11 @@ std::vector<geometry::Pose3> loadPosesTUM(const std::string &filename, const std
     {
       sscanf(line.c_str(), "%lf %lf %lf %lf %lf %lf %lf %lf", &timestamp, &cx, &cy, &cz, &qx, &qy, &qz, &qw);
 
-      // needed to rotate the NLK orientations to the notation used in openMVG (z axis points into camera viewing direction)
-      //Quaternion qtr(0.5, 0.5, -0.5, 0.5); // Euler angles: order x,y,z -> 90deg,0,90deg
-
       Quaternion qt(qw, qx, qy, qz);
       Vec3 center(cx, cy, cz);
 
       Mat3 Rw = qt.toRotationMatrix();
       Mat3 R = Rw.transpose();  // needed to be inverted (transposed) because NLK format defines the camera pose in the world frame and openMVG needs the rotation of the extrinsic camera parameters, which is the inverse of the rotation part of the pose
-      //Mat3 R = qtr.toRotationMatrix() * Rwt;
 
       map_time_pose.insert({timestamp, {R, center}});
     }

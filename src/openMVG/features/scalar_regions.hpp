@@ -15,6 +15,8 @@
 #include "openMVG/features/descriptor.hpp"
 #include "openMVG/matching/metric.hpp"
 
+#include "third_party/stlplus3/filesystemSimplified/file_system.hpp"
+
 namespace openMVG {
 namespace features {
 
@@ -54,11 +56,36 @@ public:
           & loadDescsFromBinFile(sfileNameDescs, vec_descs_);
   }
 
+  bool saveFeatsAndDescsToColmap(const std::string& sfileNameColmap) const
+  {
+    std::ofstream colmapFile;
+    std::string path = stlplus::create_filespec(stlplus::folder_part(sfileNameColmap), stlplus::basename_part(sfileNameColmap), ".jpg.txt");
+    colmapFile.open(path);
+
+    int numberOfFeatures = vec_feats_.size();
+    int length = DescriptorLength();
+    colmapFile << numberOfFeatures << " " << length << std::endl;
+    unsigned char *desc = (unsigned char *)DescriptorRawData();
+    for (int i = 0; i < numberOfFeatures; i++)
+    {
+      colmapFile << vec_feats_[i].x() << " " << vec_feats_[i].y() << " " << vec_feats_[i].scale() << " " << vec_feats_[i].orientation() <<  " ";
+      for (int j = 0; j < length; j++)
+        colmapFile << (int)desc[i*length+j] << " ";
+      colmapFile << std::endl;
+    }
+
+    colmapFile.close();
+  }
+
   /// Export in two separate files the regions and their corresponding descriptors.
   bool Save(
     const std::string& sfileNameFeats,
-    const std::string& sfileNameDescs) const override
+    const std::string& sfileNameDescs,
+    bool bExportToColmap) const override
   {
+    if (bExportToColmap)
+      saveFeatsAndDescsToColmap(sfileNameFeats);
+
     return saveFeatsToFile(sfileNameFeats, vec_feats_)
           & saveDescsToBinFile(sfileNameDescs, vec_descs_);
   }

@@ -35,7 +35,8 @@ public:
 
   virtual bool Save(
     const std::string& sfileNameFeats,
-    const std::string& sfileNameDescs) const = 0;
+    const std::string& sfileNameDescs,
+    bool bExportToColmap) const = 0;
 
   virtual bool LoadFeatures(
     const std::string& sfileNameFeats) = 0;
