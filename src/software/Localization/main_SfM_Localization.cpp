@@ -332,7 +332,7 @@ int main(int argc, char **argv)
       if (!stlplus::file_exists(sFeat) || !stlplus::file_exists(sDesc))
       {
         image_describer->Describe(imageGray, query_regions);
-        image_describer->Save(query_regions.get(), sFeat, sDesc);
+        image_describer->Save(query_regions.get(), sFeat, sDesc, 0);
         std::cout << "#regions detected in query image: " << query_regions->RegionCount() << std::endl;
       }
       else // load already existing regions

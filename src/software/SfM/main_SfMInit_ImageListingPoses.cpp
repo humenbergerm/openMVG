@@ -281,7 +281,7 @@ std::vector<geometry::Pose3> loadPosesNLEcombined(const std::string &filename, s
     if (line != "")
     {
       sscanf(line.c_str(), "%s %lf %lf %lf  %lf  %lf  %lf  %lf  %lf %lf %lf  %lf  %lf  %lf  %lf  %lf  %lf  %lf  %lf  %lf  %lf  %lf",
-                       imgname, &x, &y, &z, &qw, &qx, &qy, &qz, &w, &h, &fx, &fy, &cx, &cy, &k1, &k2, &p1, &p2, &k3, &k4, &k5, &k6);
+             imgname, &x, &y, &z, &qw, &qx, &qy, &qz, &w, &h, &fx, &fy, &cx, &cy, &k1, &k2, &p1, &p2, &k3, &k4, &k5, &k6);
 
       // pose
       Quaternion qt(qw, qx, qy, qz);
@@ -299,8 +299,8 @@ std::vector<geometry::Pose3> loadPosesNLEcombined(const std::string &filename, s
       // camera intrinsics
       double focal = (fx + fy) / 2.0;
       map_img_intrinsics[imgname] = std::make_shared<openMVG::cameras::Pinhole_Intrinsic_Brown_T2>(w, h, focal,
-                                                                                                 cx, cy, k1, k2,
-                                                                                                 k3, p1, p2);
+                                                                                                   cx, cy, k1, k2,
+                                                                                                   k3, p1, p2);
     }
   }
 
@@ -763,24 +763,32 @@ int main(int argc, char **argv)
 
   // read poses
   std::vector<geometry::Pose3> vec_poses;
-  std::vector<geometry::Pose3>::const_iterator iter_poses;
 
   //Setup the camera type and the appropriate camera reader
   bool (*fcnReadCamPtr)(const std::string &, PinholeCamera &);
   std::string suffix;
   std::map<std::string, std::pair<Mat3, Vec3>> map_Rt_gt, map_img_pose;
   std::map<std::string, std::shared_ptr<openMVG::cameras::IntrinsicBase>> map_img_intrinsics;
-  std::map<size_t, PinholeCamera, std::less<size_t>,
-    Eigen::aligned_allocator<std::pair<const size_t, PinholeCamera>>> map_Cam_gt;
+  std::map<size_t, PinholeCamera, std::less<size_t>, Eigen::aligned_allocator<std::pair<const size_t, PinholeCamera>>> map_Cam_gt;
 
   if (!sGroundTruthPath.empty())
   {
     switch (i_gt_type)
     {
       case 1:
+      {
         // load NLK format
         vec_poses = loadPosesNLK(sGroundTruthPath);
+
+        for (int i = 0; i < vec_image.size(); i++)
+        {
+          std::pair<Mat3, Vec3> val;
+          val.first = vec_poses[i].rotation();
+          val.second = vec_poses[i].center();
+          map_img_pose[vec_image[i]] = val;
+        }
         break;
+      }
       case 2:
       {
         // load Strecha's camera files
@@ -803,6 +811,13 @@ int main(int argc, char **argv)
           Pose3 pose(cam._R, cam._C);
           vec_poses.push_back(pose);
         }
+        for (int i = 0; i < vec_image.size(); i++)
+        {
+          std::pair<Mat3, Vec3> val;
+          val.first = vec_poses[i].rotation();
+          val.second = vec_poses[i].center();
+          map_img_pose[vec_image[i]] = val;
+        }
         if (!intrinsic_list.empty())
         {
           intrinsic_list.clear();
@@ -813,9 +828,18 @@ int main(int argc, char **argv)
         break;
       }
       case 3:
+      {
         // load TUM format
         vec_poses = loadPosesTUM(sGroundTruthPath, vec_image);
+        for (int i = 0; i < vec_image.size(); i++)
+        {
+          std::pair<Mat3, Vec3> val;
+          val.first = vec_poses[i].rotation();
+          val.second = vec_poses[i].center();
+          map_img_pose[vec_image[i]] = val;
+        }
         break;
+      }
       case 4:
         // load NLE format
         vec_poses = loadPosesNLE(sGroundTruthPath, map_img_pose);
@@ -843,12 +867,12 @@ int main(int argc, char **argv)
           return EXIT_FAILURE;
         }
         vec_poses.clear();
-        for (int i = 0; i < vec_image.size(); i++)
-        {
-          std::pair<Mat3,Vec3> val = map_img_pose[vec_image[i]];
-          Pose3 pose(val.first, val.second);
-          vec_poses.push_back(pose);
-        }
+//        for (int i = 0; i < vec_image.size(); i++)
+//        {
+//          std::pair<Mat3,Vec3> val = map_img_pose[vec_image[i]];
+//          Pose3 pose(val.first, val.second);
+//          vec_poses.push_back(pose);
+//        }
         break;
       default:
         std::cerr << "Unsupported ground truth type." << std::endl;
@@ -856,15 +880,17 @@ int main(int argc, char **argv)
     }
   }
 
-  if (vec_image.size() != vec_poses.size() && !sGroundTruthPath.empty())
+  vec_poses.clear();
+
+  if (vec_image.size() != map_img_pose.size() && !sGroundTruthPath.empty())
   {
-    if (i_gt_type == 4 || i_gt_type == 5)
-      std::cerr << "Number of poses is not equal to number of images! Only images with available pose will be used." << std::endl;
-    else
-    {
-      std::cerr << "Number of poses is not equal to number of images!" << std::endl;
-      return EXIT_FAILURE;
-    }
+    //if (i_gt_type == 4 || i_gt_type == 5)
+    std::cout << "Number of poses is not equal to number of images! Only images with available pose will be used." << std::endl;
+    //else
+    //{
+    //  std::cerr << "Number of poses is not equal to number of images!" << std::endl;
+    //  return EXIT_FAILURE;
+    //}
   }
 
   // Configure an empty scene with Views and their corresponding cameras and poses
@@ -895,8 +921,8 @@ int main(int argc, char **argv)
 
   C_Progress_display my_progress_bar(vec_image.size(), std::cout, "\n- Image listing -\n");
   std::ostringstream error_report_stream;
-  for (iter_image = vec_image.begin(), iter_poses = vec_poses.begin();
-       iter_image != vec_image.end(); ++iter_image, ++my_progress_bar, ++iter_poses)
+  for (iter_image = vec_image.begin();
+       iter_image != vec_image.end(); ++iter_image, ++my_progress_bar)
   {
     int index = std::distance(vec_image.cbegin(), iter_image);
     // Read meta data to fill camera parameter (w,h,focal,ppx,ppy) fields.
@@ -912,8 +938,10 @@ int main(int argc, char **argv)
     camname = values[values.size()-1];
 
     // skip image if no valid pose was found
-    if (map_img_pose.find(sImFilenamePart) == map_img_pose.end() && (i_gt_type == 4 || i_gt_type == 5))
+    if (map_img_pose.find(sImFilenamePart) == map_img_pose.end() && !sGroundTruthPath.empty())
       continue;
+
+    //Pose3 pose_from_vector = vec_poses[index];
 
     // Test if the image format is supported:
     if (openMVG::image::GetFormat(sImageFilename.c_str()) == openMVG::image::Unknown)
@@ -1108,12 +1136,12 @@ int main(int argc, char **argv)
           if (cmd.used('T'))
           {
             v.b_use_pose_center_ = true;
-            v.pose_center_ = iter_poses->center();
+            v.pose_center_ = map_img_pose[sImFilenamePart].second;
           }
           if (cmd.used('R'))
           {
             v.b_use_pose_rotation_ = true;
-            v.pose_rotation_ = iter_poses->rotation();
+            v.pose_rotation_ = map_img_pose[sImFilenamePart].first;
           }
         }
 
@@ -1151,7 +1179,7 @@ int main(int argc, char **argv)
     {
       if (e_User_camera_model != CAMERA_SPHERICAL)
       {
-        PinholeCamera camGT(K, iter_poses->rotation(), iter_poses->translation());
+        PinholeCamera camGT(K, map_img_pose[sImFilenamePart].first, map_img_pose[sImFilenamePart].second);
         std::string sCameraFileName = sImFilenamePart + ".bin";
         save(stlplus::create_filespec(sOutputDir, sCameraFileName).c_str(), camGT);
       }
@@ -1226,7 +1254,7 @@ int main(int argc, char **argv)
 
   std::cout << std::endl << "SfMInit_ImageListing report:\n" << "listed #File(s): " << vec_image.size() << "\n"
             << "usable #File(s) listed in sfm_data: " << sfm_data.GetViews().size() << "\n" << "listed #Pose(s): "
-            << vec_poses.size() << "\n" << "usable #Intrinsic(s) listed in sfm_data: "
+            << sfm_data.GetPoses().size() << "\n" << "usable #Intrinsic(s) listed in sfm_data: "
             << sfm_data.GetIntrinsics().size() << std::endl;
 
   return EXIT_SUCCESS;
