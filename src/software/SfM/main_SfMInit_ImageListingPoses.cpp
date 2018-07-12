@@ -704,8 +704,8 @@ int main(int argc, char **argv)
             << "--cameraCalibrationFile " << sCalibrationFile << std::endl
             << "--writeCameraFiles " << cmd.used('G') << std::endl
             << "--parentDirAsRoot " << cmd.used('B') << std::endl
-            << "--selectionMethod" << i_image_selection_method << std::endl
-            << "--selectionParam" << image_selection_param << std::endl;
+            << "--selectionMethod " << i_image_selection_method << std::endl
+            << "--selectionParam " << image_selection_param << std::endl;
 
   // Expected properties for each image
   double width = -1, height = -1, focal = -1, ppx = -1, ppy = -1;
@@ -1003,7 +1003,7 @@ int main(int argc, char **argv)
       case 2:
       {
         // ensure a minimum distance of image_selection_param between two consecutive images
-        if (index > 0)
+        if (vec_poses.size() > 1)
         {
           Vec3 last = vec_poses[vec_poses.size()-1].center();
           Vec3 current = pose.center();
