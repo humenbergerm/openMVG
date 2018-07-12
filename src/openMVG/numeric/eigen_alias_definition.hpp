@@ -82,7 +82,7 @@ namespace openMVG
   using Mat3 = Eigen::Matrix<double, 3, 3>;
 
   /// 3x4 matrix using double internal format
-  using Mat34 = Eigen::Matrix<double, 3, 4, Eigen::DontAlign>;
+  using Mat34 = Eigen::Matrix<double, 3, 4>;
 
   /// 2d vector using double internal format
   using Vec2 = Eigen::Vector2d;
