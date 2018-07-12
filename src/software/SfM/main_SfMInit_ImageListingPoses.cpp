@@ -605,6 +605,10 @@ int main(int argc, char **argv)
 
   int i_gt_type = 1;
 
+  int i_image_selection_method = 0;
+
+  double image_selection_param = 0;
+
   cmd.add(make_option('i', sImageDir, "imageDirectory"));
   cmd.add(make_option('t', sGroundTruthPath, "gtPath"));
   cmd.add(make_option('s', i_gt_type, "gtType"));
@@ -624,6 +628,8 @@ int main(int argc, char **argv)
   cmd.add(make_option('C', sCalibrationFile, "cameraCalibrationFile"));
   cmd.add(make_switch('A', "appendData"));
   cmd.add(make_switch('B', "parentDirAsRoot"));
+  cmd.add(make_option('E', i_image_selection_method, "selectionMethod"));
+  cmd.add(make_option('e', image_selection_param, "selectionParam"));
 
   try
   {
@@ -670,6 +676,11 @@ int main(int argc, char **argv)
               << "[-W|--prior_weights] \"x;y;z;\" of weights for each dimension of the prior (default: 1.0)\n"
               << "[-m|--gps_to_xyz_method] XZY Coordinate system:\n" << "\t 0: ECEF (default)\n" << "\t 1: UTM\n"
               << "[-G|--writeCameraFiles] poses from trajectory files will be writen as camera files in outputDirectory\n"
+              << "[-E|--selectionMethod] Image selection method:\n"
+                "\t 0: All images are used (default)\n"
+                "\t 1: Every Nth image is used\n"
+                "\t 2: A minimum distance of N needs to be between two consecutive images; gt poses need to be provided\n"
+              << "[-e|--selectionParam] Parameter N for method defined using -E"
               << std::endl;
 
     std::cerr << s << std::endl;
@@ -692,7 +703,9 @@ int main(int argc, char **argv)
             << "--group_camera_model " << b_Group_camera_model << std::endl
             << "--cameraCalibrationFile " << sCalibrationFile << std::endl
             << "--writeCameraFiles " << cmd.used('G') << std::endl
-            << "--parentDirAsRoot " << cmd.used('B') << std::endl;
+            << "--parentDirAsRoot " << cmd.used('B') << std::endl
+            << "--selectionMethod" << i_image_selection_method << std::endl
+            << "--selectionParam" << image_selection_param << std::endl;
 
   // Expected properties for each image
   double width = -1, height = -1, focal = -1, ppx = -1, ppy = -1;
@@ -765,12 +778,42 @@ int main(int argc, char **argv)
     prior_w_info.first = true;
   }
 
+  switch (i_image_selection_method)
+  {
+    case 0:
+    {
+      std::cout << "All images in image directory will be used." << std::endl;
+      break;
+    }
+    case 1:
+    {
+      std::cout << "Every " << image_selection_param << " image in image directory will be used." << std::endl;
+      break;
+    }
+    case 2:
+    {
+      if (sGroundTruthPath.empty())
+      {
+        std::cout << "GT poses needed for this image selection method." << std::endl;
+        return EXIT_FAILURE;
+      }
+      else
+        std::cout << "Minimum distance between consecutive images: " << image_selection_param << std::endl;
+      break;
+    }
+    default:
+    {
+      std::cerr << "Unsupported image selection method." << std::endl;
+      return EXIT_FAILURE;
+    }
+  }
+
   // read images
   std::vector<std::string> vec_image = stlplus::folder_files(sImageDir); // contains a list of filenames (1234.567.png, 678.989.png, ...)
   std::sort(vec_image.begin(), vec_image.end());
 
   // read poses
-  std::vector<geometry::Pose3> vec_poses;
+  std::vector<geometry::Pose3> vec_all_poses;
 
   //Setup the camera type and the appropriate camera reader
   bool (*fcnReadCamPtr)(const std::string &, PinholeCamera &);
@@ -786,13 +829,13 @@ int main(int argc, char **argv)
       case 1:
       {
         // load NLK format
-        vec_poses = loadPosesNLK(sGroundTruthPath);
+        vec_all_poses = loadPosesNLK(sGroundTruthPath);
 
         for (int i = 0; i < vec_image.size(); i++)
         {
           std::pair<Mat3, Vec3> val;
-          val.first = vec_poses[i].rotation();
-          val.second = vec_poses[i].center();
+          val.first = vec_all_poses[i].rotation();
+          val.second = vec_all_poses[i].center();
           map_img_pose[vec_image[i]] = val;
         }
         break;
@@ -817,13 +860,13 @@ int main(int argc, char **argv)
         {
           PinholeCamera cam = map_Cam_gt[i];
           Pose3 pose(cam._R, cam._C);
-          vec_poses.push_back(pose);
+          vec_all_poses.push_back(pose);
         }
         for (int i = 0; i < vec_image.size(); i++)
         {
           std::pair<Mat3, Vec3> val;
-          val.first = vec_poses[i].rotation();
-          val.second = vec_poses[i].center();
+          val.first = vec_all_poses[i].rotation();
+          val.second = vec_all_poses[i].center();
           map_img_pose[vec_image[i]] = val;
         }
         if (!intrinsic_list.empty())
@@ -838,49 +881,42 @@ int main(int argc, char **argv)
       case 3:
       {
         // load TUM format
-        vec_poses = loadPosesTUM(sGroundTruthPath, vec_image);
+        vec_all_poses = loadPosesTUM(sGroundTruthPath, vec_image);
         for (int i = 0; i < vec_image.size(); i++)
         {
           std::pair<Mat3, Vec3> val;
-          val.first = vec_poses[i].rotation();
-          val.second = vec_poses[i].center();
+          val.first = vec_all_poses[i].rotation();
+          val.second = vec_all_poses[i].center();
           map_img_pose[vec_image[i]] = val;
         }
         break;
       }
       case 4:
         // load NLE format
-        vec_poses = loadPosesNLE(sGroundTruthPath, map_img_pose);
+        vec_all_poses = loadPosesNLE(sGroundTruthPath, map_img_pose);
         // convert to vector
         if (map_img_pose.empty())
         {
           std::cout << "No GT found. Aborting..." << std::endl;
           return EXIT_FAILURE;
         }
-        vec_poses.clear();
+        vec_all_poses.clear();
         for (int i = 0; i < vec_image.size(); i++)
         {
           std::pair<Mat3,Vec3> val = map_img_pose[vec_image[i]];
           Pose3 pose(val.first, val.second);
-          vec_poses.push_back(pose);
+          vec_all_poses.push_back(pose);
         }
         break;
       case 5:
         // load NLE combined format
-        vec_poses = loadPosesNLEcombined(sGroundTruthPath, map_img_pose, map_img_intrinsics);
+        vec_all_poses = loadPosesNLEcombined(sGroundTruthPath, map_img_pose, map_img_intrinsics);
         // convert to vector
         if (map_img_pose.empty())
         {
           std::cout << "No GT found. Aborting..." << std::endl;
           return EXIT_FAILURE;
         }
-        vec_poses.clear();
-//        for (int i = 0; i < vec_image.size(); i++)
-//        {
-//          std::pair<Mat3,Vec3> val = map_img_pose[vec_image[i]];
-//          Pose3 pose(val.first, val.second);
-//          vec_poses.push_back(pose);
-//        }
         break;
       default:
         std::cerr << "Unsupported ground truth type." << std::endl;
@@ -888,17 +924,11 @@ int main(int argc, char **argv)
     }
   }
 
-  vec_poses.clear();
+  vec_all_poses.clear();
 
   if (vec_image.size() != map_img_pose.size() && !sGroundTruthPath.empty())
   {
-    //if (i_gt_type == 4 || i_gt_type == 5)
     std::cout << "Number of poses is not equal to number of images! Only images with available pose will be used." << std::endl;
-    //else
-    //{
-    //  std::cerr << "Number of poses is not equal to number of images!" << std::endl;
-    //  return EXIT_FAILURE;
-    //}
   }
 
   // Configure an empty scene with Views and their corresponding cameras and poses
@@ -925,6 +955,7 @@ int main(int argc, char **argv)
   Views &views = sfm_data.views;
   Intrinsics &intrinsics = sfm_data.intrinsics;
   Poses &poses = sfm_data.poses;
+  std::vector<Pose3> vec_poses;
   std::vector<std::string>::const_iterator iter_image;
 
   C_Progress_display my_progress_bar(vec_image.size(), std::cout, "\n- Image listing -\n");
@@ -945,11 +976,53 @@ int main(int argc, char **argv)
     values = stlplus::folder_elements(sImageDir);
     camname = values[values.size()-1];
 
-    // skip image if no valid pose was found
-    if (map_img_pose.find(sImFilenamePart) == map_img_pose.end() && !sGroundTruthPath.empty())
-      continue;
+    Pose3 pose;
+    if (!sGroundTruthPath.empty())
+    {
+      if (map_img_pose.find(sImFilenamePart) != map_img_pose.end())
+      {
+        pose.rotation() = map_img_pose[sImFilenamePart].first;
+        pose.center() = map_img_pose[sImFilenamePart].second;
+      }
+      else
+      {
+        //std::cout << "No pose found for image " << sImFilenamePart << " ... skipping" << std::endl;
+        continue;
+      }
+    }
 
-    //Pose3 pose_from_vector = vec_poses[index];
+    switch (i_image_selection_method)
+    {
+      case 1:
+      {
+        // skip every image_selection_param image
+        if ((index % (int)image_selection_param))
+          continue;
+        break;
+      }
+      case 2:
+      {
+        // ensure a minimum distance of image_selection_param between two consecutive images
+        if (index > 0)
+        {
+          Vec3 last = vec_poses[vec_poses.size()-1].center();
+          Vec3 current = pose.center();
+          double distance = (last - current).norm();
+
+          if (distance < image_selection_param)
+          {
+            //std::cout << "Distance " << distance << " too short." << std::endl;
+            continue;
+          }
+        }
+        break;
+      }
+      default:
+        break;
+    }
+
+    // save poses of images which are actually used
+    vec_poses.push_back(pose);
 
     // Test if the image format is supported:
     if (openMVG::image::GetFormat(sImageFilename.c_str()) == openMVG::image::Unknown)
@@ -1177,7 +1250,7 @@ int main(int argc, char **argv)
 
       if (!sGroundTruthPath.empty())
       {
-        Pose3 pose(map_img_pose[sImFilenamePart].first, map_img_pose[sImFilenamePart].second);
+        //Pose3 pose(map_img_pose[sImFilenamePart].first, map_img_pose[sImFilenamePart].second);
         poses[poses.size()] = pose;
       }
     }
