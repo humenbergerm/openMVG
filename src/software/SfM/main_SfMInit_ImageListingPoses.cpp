@@ -287,9 +287,17 @@ std::vector<geometry::Pose3> loadPosesNLEcombined(const std::string &filename, s
       Quaternion qt(qw, qx, qy, qz);
       Vec3 center(x, y, z);
 
-      Mat3 R = qt.toRotationMatrix();
-      geometry::Pose3 pose(R, center);
-      vec_poses.push_back(pose);
+      // needed to rotate the NLK orientations to the notation used in openMVG (z axis points into camera viewing direction)
+      Quaternion qtr(0.5, 0.5, -0.5, 0.5); // Euler angles: order x,y,z -> 90deg,0,90deg
+
+
+      Mat3 Rw = qt.toRotationMatrix();
+      Mat3 Rwt = Rw.transpose();  // needed to be inverted (transposed) because NLK format defines the camera pose in the world frame and openMVG needs the rotation of the extrinsic camera parameters, which is the inverse of the rotation part of the pose
+      Mat3 R = qtr.toRotationMatrix() * Rwt;
+
+      //Mat3 R = qt.toRotationMatrix();
+      //geometry::Pose3 pose(R, center);
+      //vec_poses.push_back(pose);
 
       std::pair<Mat3, Vec3> Rt;
       Rt.first = R;
