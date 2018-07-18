@@ -151,7 +151,7 @@ int main(int argc, char **argv)
             << "--input_file " << sSfM_Data_Filename << "\n"
             << "--out_dir " << sMatchesDirectory << "\n"
             << "Optional parameters:" << "\n"
-            << "--matchesFileName " << sMatchesFileNamePrefix << "\n"
+            << "--matchesFileNamePrefix " << sMatchesFileNamePrefix << "\n"
             << "--force " << bForce << "\n"
             << "--ratio " << fDistRatio << "\n"
             << "--geometric_model " << sGeometricModel << "\n"
