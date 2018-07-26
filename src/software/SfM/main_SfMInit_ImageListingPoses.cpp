@@ -1260,7 +1260,8 @@ int main(int argc, char **argv)
     {
       if (e_User_camera_model != CAMERA_SPHERICAL)
       {
-        PinholeCamera camGT(K, map_img_pose[sImFilenamePart].first, map_img_pose[sImFilenamePart].second);
+        // PinholeCamera(K, R, t): K ... intrinsics, R, t ... extrinsics (world seen from camera)
+        PinholeCamera camGT(K, map_img_pose[sImFilenamePart].first, -map_img_pose[sImFilenamePart].first*map_img_pose[sImFilenamePart].second);
         std::string sCameraFileName = sImFilenamePart + ".bin";
         save(stlplus::create_filespec(sOutputDir, sCameraFileName).c_str(), camGT);
       }
