@@ -9,6 +9,6 @@
 *~
 *.pyc
 *.db
-build*
+build
 *.out
 docs/openmvg.pdf
