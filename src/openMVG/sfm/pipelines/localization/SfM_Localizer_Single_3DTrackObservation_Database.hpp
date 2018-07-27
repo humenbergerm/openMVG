@@ -70,6 +70,18 @@ public:
     Image_Localizer_Match_Data * resection_data_ptr = nullptr
   ) const override;
 
+  bool LocalizeAndKeepMatches
+  (
+    const resection::SolverType & solver_type,
+    const Pair & image_size,
+    const cameras::IntrinsicBase * optional_intrinsics,
+    const features::Regions & query_regions,
+    geometry::Pose3 & pose,
+    Image_Localizer_Match_Data * resection_data_ptr = nullptr
+  );
+
+  Mat & GetMatchedMappoints() {return matched_mappoints_pt2D;}
+
 private:
   // Reference to the scene
   const SfM_Data * sfm_data_;
@@ -80,6 +92,8 @@ private:
   /// A matching interface to find matches between 2D descriptor matches
   ///  and 3D points observation descriptors
   std::shared_ptr<matching::Matcher_Regions_Database> matching_interface_;
+  /// matched mappoints
+  Mat matched_mappoints_pt2D;
 };
 
 } // namespace sfm
