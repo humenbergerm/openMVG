@@ -13,11 +13,13 @@
 
 #include "openMVG/matching/regions_matcher.hpp"
 #include "openMVG/sfm/pipelines/localization/SfM_Localizer.hpp"
+#include "openMVG/matching/indMatch.hpp"
 #include "openMVG/types.hpp"
 
 namespace openMVG { namespace cameras { struct IntrinsicBase; } }
 namespace openMVG { namespace features { class Regions; } }
 namespace openMVG { namespace geometry { class Pose3; } }
+namespace openMVG { namespace matching { class Matcher_Regions_Database; } }
 namespace openMVG { namespace sfm { struct Regions_Provider; } }
 namespace openMVG { namespace sfm { struct SfM_Data; } }
 
@@ -70,17 +72,8 @@ public:
     Image_Localizer_Match_Data * resection_data_ptr = nullptr
   ) const override;
 
-  bool LocalizeAndKeepMatches
-  (
-    const resection::SolverType & solver_type,
-    const Pair & image_size,
-    const cameras::IntrinsicBase * optional_intrinsics,
-    const features::Regions & query_regions,
-    geometry::Pose3 & pose,
-    Image_Localizer_Match_Data * resection_data_ptr = nullptr
-  );
-
-  Mat & GetMatchedMappoints() {return matched_mappoints_pt2D;}
+  matching::IndMatches & GetPutativeMatches() {return vec_putative_matches_;}
+  std::vector<IndexT> & GetIndexToLandmarkID() {return index_to_landmark_id_;}
 
 private:
   // Reference to the scene
@@ -94,6 +87,8 @@ private:
   std::unique_ptr<matching::RegionsMatcher> matching_interface_;
   /// matched mappoints
   Mat matched_mappoints_pt2D;
+  /// putative matches between 2D keypoints and 3D mappoints
+  matching::IndMatches vec_putative_matches_;
 };
 
 } // namespace sfm
