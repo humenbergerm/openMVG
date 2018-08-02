@@ -73,7 +73,7 @@ public:
     const features::Regions & query_regions,
     geometry::Pose3 & pose,
     Image_Localizer_Match_Data * resection_data = nullptr // optional
-  ) const = 0;
+  ) = 0;
 
 
   /**

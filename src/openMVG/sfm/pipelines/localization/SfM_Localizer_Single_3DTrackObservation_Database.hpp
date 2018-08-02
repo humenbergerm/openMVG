@@ -12,6 +12,7 @@
 #include <vector>
 
 #include "openMVG/sfm/pipelines/localization/SfM_Localizer.hpp"
+#include "openMVG/matching/indMatch.hpp"
 #include "openMVG/types.hpp"
 
 namespace openMVG { namespace cameras { struct IntrinsicBase; } }
@@ -23,6 +24,7 @@ namespace openMVG { namespace sfm { struct SfM_Data; } }
 
 namespace openMVG {
 namespace sfm {
+
 
 // Implementation of a naive method:
 // - init the database of descriptor from the structure and the observations.
@@ -68,19 +70,10 @@ public:
     const features::Regions & query_regions,
     geometry::Pose3 & pose,
     Image_Localizer_Match_Data * resection_data_ptr = nullptr
-  ) const override;
+  ) override;
 
-  bool LocalizeAndKeepMatches
-  (
-    const resection::SolverType & solver_type,
-    const Pair & image_size,
-    const cameras::IntrinsicBase * optional_intrinsics,
-    const features::Regions & query_regions,
-    geometry::Pose3 & pose,
-    Image_Localizer_Match_Data * resection_data_ptr = nullptr
-  );
-
-  Mat & GetMatchedMappoints() {return matched_mappoints_pt2D;}
+  matching::IndMatches & GetPutativeMatches() {return vec_putative_matches_;}
+  std::vector<IndexT> & GetIndexToLandmarkID() {return index_to_landmark_id_;}
 
 private:
   // Reference to the scene
@@ -92,8 +85,8 @@ private:
   /// A matching interface to find matches between 2D descriptor matches
   ///  and 3D points observation descriptors
   std::shared_ptr<matching::Matcher_Regions_Database> matching_interface_;
-  /// matched mappoints
-  Mat matched_mappoints_pt2D;
+  /// putative matches between 2D keypoints and 3D mappoints
+  matching::IndMatches vec_putative_matches_;
 };
 
 } // namespace sfm

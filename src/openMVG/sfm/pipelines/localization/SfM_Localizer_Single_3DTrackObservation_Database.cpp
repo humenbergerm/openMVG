@@ -9,7 +9,6 @@
 #include "openMVG/sfm/pipelines/localization/SfM_Localizer_Single_3DTrackObservation_Database.hpp"
 
 #include "openMVG/cameras/Camera_Intrinsics.hpp"
-#include "openMVG/matching/indMatch.hpp"
 #include "openMVG/matching/regions_matcher.hpp"
 #include "openMVG/sfm/pipelines/sfm_regions_provider.hpp"
 #include "openMVG/sfm/sfm_data.hpp"
@@ -81,33 +80,33 @@ namespace sfm {
     const features::Regions & query_regions,
     geometry::Pose3 & pose,
     Image_Localizer_Match_Data * resection_data_ptr
-  ) const
+  )
   {
     if (!sfm_data_ || !matching_interface_)
     {
       return false;
     }
 
-    matching::IndMatches vec_putative_matches;
-    if (!matching_interface_->Match(0.8, query_regions, vec_putative_matches))
+    vec_putative_matches_.clear();
+    if (!matching_interface_->Match(0.8, query_regions, vec_putative_matches_))
     {
       return false;
     }
 
-    std::cout << "#3D2d putative correspondences: " << vec_putative_matches.size() << std::endl;
+    std::cout << "#3D2d putative correspondences: " << vec_putative_matches_.size() << std::endl;
     // Init the 3D-2d correspondences array
     Image_Localizer_Match_Data resection_data;
     if (resection_data_ptr)
     {
       resection_data.error_max = resection_data_ptr->error_max;
     }
-    resection_data.pt3D.resize(3, vec_putative_matches.size());
-    resection_data.pt2D.resize(2, vec_putative_matches.size());
-    Mat2X pt2D_original(2, vec_putative_matches.size());
-    for (size_t i = 0; i < vec_putative_matches.size(); ++i)
+    resection_data.pt3D.resize(3, vec_putative_matches_.size());
+    resection_data.pt2D.resize(2, vec_putative_matches_.size());
+    Mat2X pt2D_original(2, vec_putative_matches_.size());
+    for (size_t i = 0; i < vec_putative_matches_.size(); ++i)
     {
-      resection_data.pt3D.col(i) = sfm_data_->GetLandmarks().at(index_to_landmark_id_[vec_putative_matches[i].i_]).X;
-      resection_data.pt2D.col(i) = query_regions.GetRegionPosition(vec_putative_matches[i].j_);
+      resection_data.pt3D.col(i) = sfm_data_->GetLandmarks().at(index_to_landmark_id_[vec_putative_matches_[i].i_]).X;
+      resection_data.pt2D.col(i) = query_regions.GetRegionPosition(vec_putative_matches_[i].j_);
       pt2D_original.col(i) = resection_data.pt2D.col(i);
       // Handle image distortion if intrinsic is known (to ease the resection)
       if (optional_intrinsics && optional_intrinsics->have_disto())
@@ -118,63 +117,6 @@ namespace sfm {
 
     const bool bResection =  SfM_Localizer::Localize(
       solver_type, image_size, optional_intrinsics, resection_data, pose);
-
-    resection_data.pt2D = std::move(pt2D_original); // restore original image domain points
-
-    if (resection_data_ptr)
-      (*resection_data_ptr) = std::move(resection_data);
-
-    return bResection;
-  }
-
-  bool
-  SfM_Localization_Single_3DTrackObservation_Database::LocalizeAndKeepMatches
-          (
-                  const resection::SolverType & solver_type,
-                  const Pair & image_size,
-                  const cameras::IntrinsicBase * optional_intrinsics,
-                  const features::Regions & query_regions,
-                  geometry::Pose3 & pose,
-                  Image_Localizer_Match_Data * resection_data_ptr
-          )
-  {
-    if (sfm_data_ == nullptr || matching_interface_ == nullptr)
-    {
-      return false;
-    }
-
-    matching::IndMatches vec_putative_matches;
-    if (!matching_interface_->Match(0.8, query_regions, vec_putative_matches))
-    {
-      return false;
-    }
-
-    std::cout << "#3D2d putative correspondences: " << vec_putative_matches.size() << std::endl;
-    // Init the 3D-2d correspondences array
-    Image_Localizer_Match_Data resection_data;
-    if (resection_data_ptr)
-    {
-      resection_data.error_max = resection_data_ptr->error_max;
-    }
-    resection_data.pt3D.resize(3, vec_putative_matches.size());
-    resection_data.pt2D.resize(2, vec_putative_matches.size());
-    matched_mappoints_pt2D.resize(2, vec_putative_matches.size());
-    Mat2X pt2D_original(2, vec_putative_matches.size());
-    for (size_t i = 0; i < vec_putative_matches.size(); ++i)
-    {
-      resection_data.pt3D.col(i) = sfm_data_->GetLandmarks().at(index_to_landmark_id_[vec_putative_matches[i].i_]).X;
-      resection_data.pt2D.col(i) = query_regions.GetRegionPosition(vec_putative_matches[i].j_);
-      matched_mappoints_pt2D.col(i) = resection_data.pt2D.col(i);
-      pt2D_original.col(i) = resection_data.pt2D.col(i);
-      // Handle image distortion if intrinsic is known (to ease the resection)
-      if (optional_intrinsics && optional_intrinsics->have_disto())
-      {
-        resection_data.pt2D.col(i) = optional_intrinsics->get_ud_pixel(resection_data.pt2D.col(i));
-      }
-    }
-
-    const bool bResection =  SfM_Localizer::Localize(
-            solver_type, image_size, optional_intrinsics, resection_data, pose);
 
     resection_data.pt2D = std::move(pt2D_original); // restore original image domain points
 
