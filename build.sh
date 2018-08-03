@@ -19,9 +19,15 @@ fi
 if [ -z "$INSTALL_DIR" ]; then
   INSTALL_DIR=$SOURCEDIR/install/$BUILD_TYPE
 fi
+# cmake version 3 is called 'cmake3' on centos, but 'cmake' on ubuntu
+if [ -e "/usr/bin/cmake3" ]; then 
+  CMAKE=cmake3; 
+else
+  CMAKE=cmake
+fi
 
 rm -rf $BUILD_DIR
 mkdir -p $BUILD_DIR
 cd $BUILD_DIR
-cmake $SOURCEDIR/src/ -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR -DCMAKE_BUILD_TYPE=$BUILD_TYPE
+$CMAKE $SOURCEDIR/src/ -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR -DCMAKE_BUILD_TYPE=$BUILD_TYPE
 make -j 10 install
