@@ -108,7 +108,7 @@ int main(int argc, char **argv)
       << "   NORMAL (default),\n"
       << "   HIGH,\n"
       << "   ULTRA: !!Can take long time!!\n"
-      << "[-c|--export_to_Colmap] export features in Colmap format"
+      << "[-c|--export_to_Colmap] export features in Colmap format\n"
 #ifdef OPENMVG_USE_OPENMP
       << "[-n|--numThreads] number of parallel computations\n"
 #endif
