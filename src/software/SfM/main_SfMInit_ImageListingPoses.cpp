@@ -223,13 +223,21 @@ std::vector<geometry::Pose3> loadPosesNLE(const std::string &filename, std::map<
              &p3, &p7, &p11, &p15,
              &p4, &p8, &p12, &p16);
 
-      Quaternion qtr(0.0, 1, 0.0, 0.0); // Euler angles: order x,y,z -> 0,180deg,180deg
+      Quaternion qtr(0.5, 0.5, -0.5, 0.5); // Euler angles: order x,y,z -> 90deg,0,90deg
 
       //Quaternion qt(qw, qx, qy, qz);
       Vec3 center(p4, p8, p12);
 
       Mat3 Rw;
       Rw << p1, p2, p3, p5, p6, p7, p9, p10, p11;
+
+      //Quaternion qtr1(0.5, 0.5, -0.5, -0.5); // Euler angles: order z,x,y -> -90deg,90deg,0
+      //Mat3 Rw2 = qtr1.toRotationMatrix() * Rw.transpose();
+
+      //Mat3 Rw1 = Rw2.transpose();
+      //Quaternion qw1(Rw1);
+      //printf("%s %f %f %f %f %f %f %f\n", imgname, center[0], center[1], center[2], qw1.w(), qw1.x(), qw1.y(), qw1.z());
+
       Mat3 Rwt = Rw.transpose();  // needed to be inverted (transposed) because this format defines the camera pose in the world frame and openMVG needs the rotation of the extrinsic camera parameters, which is the inverse of the rotation part of the pose
       Mat3 R = qtr.toRotationMatrix() * Rwt;
 
@@ -264,7 +272,7 @@ std::vector<geometry::Pose3> loadPosesNLEcombined(const std::string &filename, s
 
   // ignore the first line
   std::string line("");
-  getline(ifs, line);
+  //getline(ifs, line);
 
   // imname	CX	CY	CZ	qw	qx	qy	qz	width	height	fx	fy	cx	cy	k1	k2	p1	p2	k3	k4	k5	k6
   while (!ifs.eof())
@@ -742,7 +750,7 @@ int main(int argc, char **argv)
   else if (!sKmatrix.empty() && !checkIntrinsicStringValidity(sKmatrix, focal, ppx, ppy))
   {
     std::cerr << "\nInvalid K matrix input" << std::endl;
-    return EXIT_FAILURE;
+    //return EXIT_FAILURE;
   }
 
   if (!sKmatrix.empty() && focal_pixels != -1.0)
