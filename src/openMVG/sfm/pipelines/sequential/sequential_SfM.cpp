@@ -10,7 +10,6 @@
 #include "openMVG/sfm/pipelines/sequential/sequential_SfM.hpp"
 #include "openMVG/geometry/pose3.hpp"
 #include "openMVG/multiview/triangulation.hpp"
-#include "openMVG/numeric/eigen_alias_definition.hpp"
 #include "openMVG/sfm/pipelines/sfm_features_provider.hpp"
 #include "openMVG/sfm/pipelines/sfm_matches_provider.hpp"
 #include "openMVG/sfm/pipelines/localization/SfM_Localizer.hpp"
@@ -435,11 +434,6 @@ bool SequentialSfMReconstructionEngine::AutomaticInitialPairChoice(Pair & initia
             const Pose3 pose_J = relativePose_info.relativePose;
             for (const uint32_t & inlier_idx : relativePose_info.vec_inliers)
             {
-              Vec3 X;
-              TriangulateDLT(
-                pose_I.asMatrix(), (*cam_I)(xI.col(inlier_idx)),
-                pose_J.asMatrix(), (*cam_J)(xJ.col(inlier_idx)), &X);
-
               openMVG::tracks::STLMAPTracks::const_iterator iterT = map_tracksCommon.begin();
               std::advance(iterT, inlier_idx);
               tracks::submapTrack::const_iterator iter = iterT->second.begin();

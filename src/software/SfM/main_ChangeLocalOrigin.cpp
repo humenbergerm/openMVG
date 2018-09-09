@@ -15,6 +15,7 @@
 #include "openMVG/geometry/pose3.hpp"
 #include "openMVG/sfm/sfm_landmark.hpp"
 
+#include <iomanip>
 #include <string>
 #include <vector>
 
@@ -99,7 +100,7 @@ int main(int argc, char **argv)
       if (vec_str.size() != 3)
       {
         std::cerr << "\n Missing ';' character in local frame origin" << std::endl;
-        return false;
+        return EXIT_FAILURE;
       }
       // Check that all local frame origin values are valid numbers
       for (size_t i = 0; i < vec_str.size(); ++i)
@@ -109,7 +110,7 @@ int main(int argc, char **argv)
         ss.str(vec_str[i]);
         if (! (ss >> readvalue) )  {
           std::cerr << "\n Used an invalid not a number character in local frame origin" << std::endl;
-          return false;
+          return EXIT_FAILURE;
         }
         local_Frame_Origin[i] = readvalue;
       }
