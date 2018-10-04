@@ -70,7 +70,7 @@ public:
     const features::Regions & query_regions,
     geometry::Pose3 & pose,
     Image_Localizer_Match_Data * resection_data_ptr = nullptr
-  ) const override;
+  ) override;
 
   matching::IndMatches & GetPutativeMatches() {return vec_putative_matches_;}
   std::vector<IndexT> & GetIndexToLandmarkID() {return index_to_landmark_id_;}

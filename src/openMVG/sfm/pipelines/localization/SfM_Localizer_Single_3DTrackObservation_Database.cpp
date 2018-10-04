@@ -83,7 +83,7 @@ namespace sfm {
     const features::Regions & query_regions,
     geometry::Pose3 & pose,
     Image_Localizer_Match_Data * resection_data_ptr
-  ) const
+  )
   {
     if (!sfm_data_ || !matching_interface_)
     {
@@ -91,7 +91,7 @@ namespace sfm {
     }
 
     vec_putative_matches_.clear();
-    if (!matching_interface_->Match(0.8, query_regions, vec_putative_matches_))
+    if (!matching_interface_->MatchDistanceRatio(0.8, query_regions, vec_putative_matches_))
     {
       return false;
     }

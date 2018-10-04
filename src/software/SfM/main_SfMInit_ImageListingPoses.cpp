@@ -1,7 +1,7 @@
 // This file was taken from OpenMVG and modified by Martin Humenberger, Naver Labs Europe
 
 #include "openMVG/cameras/cameras.hpp"
-#include "openMVG/cameras/Camera_IO.hpp"
+#include "openMVG/cameras/PinholeCamera.hpp"
 #include "openMVG/exif/exif_IO_EasyExif.hpp"
 #include "openMVG/exif/sensor_width_database/ParseDatabase.hpp"
 #include "openMVG/geodesy/geodesy.hpp"
@@ -624,7 +624,7 @@ int main(int argc, char **argv)
   cmd.add(make_switch('P', "use_pose_prior"));
   cmd.add(make_option('W', sPriorWeights, "priorWeights"));
   cmd.add(make_option('m', i_GPS_XYZ_method, "gps_to_xyz_method"));
-  cmd.add(make_switch('G', "writeCameraFiles"));
+  //cmd.add(make_switch('G', "writeCameraFiles"));
   cmd.add(make_option('C', sCalibrationFile, "cameraCalibrationFile"));
   cmd.add(make_switch('A', "appendData"));
   cmd.add(make_switch('B', "parentDirAsRoot"));
@@ -675,7 +675,7 @@ int main(int argc, char **argv)
               << "[-P|--use_pose_prior] Use pose prior if GPS EXIF pose is available\n"
               << "[-W|--prior_weights] \"x;y;z;\" of weights for each dimension of the prior (default: 1.0)\n"
               << "[-m|--gps_to_xyz_method] XZY Coordinate system:\n" << "\t 0: ECEF (default)\n" << "\t 1: UTM\n"
-              << "[-G|--writeCameraFiles] poses from trajectory files will be writen as camera files in outputDirectory\n"
+              //<< "[-G|--writeCameraFiles] poses from trajectory files will be writen as camera files in outputDirectory\n"
               << "[-E|--selectionMethod] Image selection method:\n"
                 "\t 0: All images are used (default)\n"
                 "\t 1: Every Nth image is used\n"
@@ -702,7 +702,7 @@ int main(int argc, char **argv)
             << "--camera_model " << i_User_camera_model << std::endl
             << "--group_camera_model " << b_Group_camera_model << std::endl
             << "--cameraCalibrationFile " << sCalibrationFile << std::endl
-            << "--writeCameraFiles " << cmd.used('G') << std::endl
+            //<< "--writeCameraFiles " << cmd.used('G') << std::endl
             << "--parentDirAsRoot " << cmd.used('B') << std::endl
             << "--selectionMethod " << i_image_selection_method << std::endl
             << "--selectionParam " << image_selection_param << std::endl;
@@ -1256,16 +1256,16 @@ int main(int argc, char **argv)
     }
 
     // Write poses as camera files
-    if (cmd.used('G') && !sGroundTruthPath.empty())
-    {
-      if (e_User_camera_model != CAMERA_SPHERICAL)
-      {
-        // PinholeCamera(K, R, t): K ... intrinsics, R, t ... extrinsics (world seen from camera)
-        PinholeCamera camGT(K, map_img_pose[sImFilenamePart].first, -map_img_pose[sImFilenamePart].first*map_img_pose[sImFilenamePart].second);
-        std::string sCameraFileName = sImFilenamePart + ".bin";
-        save(stlplus::create_filespec(sOutputDir, sCameraFileName).c_str(), camGT);
-      }
-    }
+//    if (cmd.used('G') && !sGroundTruthPath.empty())
+//    {
+//      if (e_User_camera_model != CAMERA_SPHERICAL)
+//      {
+//        // PinholeCamera(K, R, t): K ... intrinsics, R, t ... extrinsics (world seen from camera)
+//        PinholeCamera camGT(K, map_img_pose[sImFilenamePart].first, -map_img_pose[sImFilenamePart].first*map_img_pose[sImFilenamePart].second);
+//        std::string sCameraFileName = sImFilenamePart + ".bin";
+//        save(stlplus::create_filespec(sOutputDir, sCameraFileName).c_str(), camGT);
+//      }
+//    }
   }
 
   // organize paths and filenames in sfm_data file
