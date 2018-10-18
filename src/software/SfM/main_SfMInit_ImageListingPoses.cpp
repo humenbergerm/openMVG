@@ -655,7 +655,6 @@ int main(int argc, char **argv)
               << "[-T|--use_traj_prior_center] Use center of trajectory as pose prior\n"
               << "[-R|--use_traj_prior_rot] Use rotation of trajectory as pose prior\n"
               << "[-d|--sensorWidthDatabase]\n"
-              << "[-o|--outputDirectory]\n"
               << "[-f|--focal] (pixels)\n"
               << "[-n|--sfmDataName] default is sfm_data.json\n"
               << "[-A|--appendData] append data to existing sfm_data file\n"
@@ -935,6 +934,12 @@ int main(int argc, char **argv)
   SfM_Data sfm_data;
   Hash_Map<std::string, IndexT> map_filename_id;
 
+  // the camera name is the name of the image directory
+  std::string sCamName;
+  std::vector<std::string> values;
+  values = stlplus::folder_elements(sImageDir);
+  sCamName = values[values.size()-1];
+
   // append new data to sfm_data file (if it exists)
   if (cmd.used('A'))
   {
@@ -946,7 +951,15 @@ int main(int argc, char **argv)
 
       // generate mapping between filename and view id to avoid duplicating entries
       for (auto & view : sfm_data.GetViews())
-        map_filename_id[stlplus::filename_part(view.second->s_Img_path)] = view.first;
+      {
+        std::string camname;
+        std::vector<std::string> values;
+        values = stlplus::folder_elements(view.second->s_Img_path);
+        camname = values[0];
+
+        std::string uniquename = camname + stlplus::filename_part(view.second->s_Img_path);
+        map_filename_id[uniquename] = view.first;
+      }
     }
     else
       std::cout << "--appendData flag set but sfm_data file does not exist. New file will be created." << std::endl;
@@ -969,12 +982,6 @@ int main(int argc, char **argv)
 
     const std::string sImageFilename = stlplus::create_filespec(sImageDir, *iter_image);
     const std::string sImFilenamePart = stlplus::filename_part(sImageFilename);
-
-    // the camera name is the name of the image directory
-    std::string camname;
-    std::vector<std::string> values;
-    values = stlplus::folder_elements(sImageDir);
-    camname = values[values.size()-1];
 
     Pose3 pose;
     if (!sGroundTruthPath.empty())
@@ -1048,9 +1055,9 @@ int main(int argc, char **argv)
 
     if (!intrinsic_list.empty())
     {
-      if (intrinsic_list.find(camname) != intrinsic_list.end())
+      if (intrinsic_list.find(sCamName) != intrinsic_list.end())
       {
-        std::vector<double> camera_params = intrinsic_list[camname]->getParams();
+        std::vector<double> camera_params = intrinsic_list[sCamName]->getParams();
         focal = camera_params[0];
         ppx = camera_params[1];
         ppy = camera_params[2];
@@ -1142,9 +1149,9 @@ int main(int argc, char **argv)
     {
       intrinsic = map_img_intrinsics[sImFilenamePart];
     }
-    else if (!intrinsic_list.empty() && intrinsic_list.find(camname) != intrinsic_list.end() && !camname.empty())
+    else if (!intrinsic_list.empty() && intrinsic_list.find(sCamName) != intrinsic_list.end() && !sCamName.empty())
     {
-      intrinsic = intrinsic_list[camname];
+      intrinsic = intrinsic_list[sCamName];
     }
     else if (focal > 0 && ppx > 0 && ppy > 0 && width > 0 && height > 0)
     {
@@ -1180,7 +1187,8 @@ int main(int argc, char **argv)
     }
 
     // Check if view already exists (when using option '-A'): if yes, don't add the view
-    if (map_filename_id.find(sImFilenamePart) == map_filename_id.end())
+    std::string uniquename = sCamName + sImFilenamePart;
+    if (map_filename_id.find(uniquename) == map_filename_id.end())
     {
       // Build the view corresponding to the image
       const std::pair<bool, Vec3> gps_info = checkGPS(sImageFilename, i_GPS_XYZ_method);
@@ -1301,7 +1309,12 @@ int main(int argc, char **argv)
     for (auto &view : sfm_data.GetViews())
     {
       std::string full_path = "";
-      if (map_filename_id.find(stlplus::filename_part(view.second->s_Img_path)) != map_filename_id.end())
+      std::string camname;
+      std::vector<std::string> values;
+      values = stlplus::folder_elements(view.second->s_Img_path);
+      camname = values[0];
+      std::string uniquename = camname + stlplus::filename_part(view.second->s_Img_path);
+      if (map_filename_id.find(uniquename) != map_filename_id.end())
       {
         full_path = stlplus::folder_append_separator(sfm_data.s_root_path) + view.second->s_Img_path;
       }
