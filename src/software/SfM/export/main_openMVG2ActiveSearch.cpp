@@ -267,7 +267,7 @@ bool exportToBundlerFormat(
 
       Mat3 D;
       D.fill(0.0);
-      D .diagonal() = Vec3(1., -1., -1.); // mapping between our pinhole and Bundler convention
+      D.diagonal() = Vec3(1., -1., -1.); // mapping between our pinhole and Bundler convention
       const double k1 = 0.0, k2 = 0.0; // distortion already removed
 
       if (isPinhole(iterIntrinsic->second->getType()))

@@ -679,6 +679,7 @@ int main(int argc, char **argv)
                 "\t 0: All images are used (default)\n"
                 "\t 1: Every Nth image is used\n"
                 "\t 2: A minimum distance of N needs to be between two consecutive images; gt poses need to be provided\n"
+                "\t 3: A random image within a sequence of N images is selected\n"
               << "[-e|--selectionParam] Parameter N for method defined using -E"
               << std::endl;
 
@@ -777,6 +778,7 @@ int main(int argc, char **argv)
     prior_w_info.first = true;
   }
 
+  int target_index = -1;
   switch (i_image_selection_method)
   {
     case 0:
@@ -798,6 +800,13 @@ int main(int argc, char **argv)
       }
       else
         std::cout << "Minimum distance between consecutive images: " << image_selection_param << std::endl;
+      break;
+    }
+    case 3:
+    {
+      // randomly select an image of the range image_selection_param
+      // initialize target index
+      target_index = rand() % (int)image_selection_param;
       break;
     }
     default:
@@ -968,7 +977,7 @@ int main(int argc, char **argv)
   Views &views = sfm_data.views;
   Intrinsics &intrinsics = sfm_data.intrinsics;
   Poses &poses = sfm_data.poses;
-  std::vector<Pose3> vec_poses;
+  std::vector<Pose3> vec_poses; // only used for i_image_selection_method
   std::vector<std::string>::const_iterator iter_image;
 
   C_Progress_display my_progress_bar(vec_image.size(), std::cout, "\n- Image listing -\n");
@@ -1024,12 +1033,28 @@ int main(int argc, char **argv)
         }
         break;
       }
+      case 3:
+      {
+      // randomly select an image of the range image_selection_param
+      if (index != target_index)
+        continue;
+      else
+      {
+        int r = rand() % (int)image_selection_param;
+        int min_index = (views.size()+1) * (int)image_selection_param;
+        target_index = min_index + r;
+      }
+      break;
+      }
       default:
         break;
     }
 
-    // save poses of images which are actually used
-    vec_poses.push_back(pose);
+    if (i_image_selection_method == 2)
+    {
+      // save poses of images which are actually used
+      vec_poses.push_back(pose);
+    }
 
     // Test if the image format is supported:
     if (openMVG::image::GetFormat(sImageFilename.c_str()) == openMVG::image::Unknown)
