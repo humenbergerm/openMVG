@@ -419,14 +419,14 @@ static bool read_openMVG_Camera(const std::string & camName, cameras::PinholeCam
   if (stlplus::extension_part(camName) == "bin")
   {
     P << val[0], val[3], val[6], val[9],
-      val[1], val[4], val[7], val[10],
-      val[2], val[5], val[8], val[11];
+            val[1], val[4], val[7], val[10],
+            val[2], val[5], val[8], val[11];
   }
   else
   {
     P << val[0], val[1], val[2], val[3],
-      val[4], val[5], val[6], val[7],
-      val[8], val[9], val[10], val[11];
+            val[4], val[5], val[6], val[7],
+            val[8], val[9], val[10], val[11];
   }
   Mat3 K, R;
   Vec3 t;
@@ -456,11 +456,11 @@ static bool read_Strecha_Camera(const std::string & camName, cameras::PinholeCam
   {
     Mat3 K, R;
     K << val[0], val[1], val[2],
-      val[3], val[4], val[5],
-      val[6], val[7], val[8];
+            val[3], val[4], val[5],
+            val[6], val[7], val[8];
     R << val[12], val[13], val[14],
-      val[15], val[16], val[17],
-      val[18], val[19], val[20];
+            val[15], val[16], val[17],
+            val[18], val[19], val[20];
 
     Vec3 C (val[21], val[22], val[23]);
     // Strecha model is P = K[R^T|-R^T t];
@@ -486,13 +486,13 @@ static bool read_Strecha_Camera(const std::string & camName, cameras::PinholeCam
 @param[out] map_camerasGT Map of PinholeCameras.
 **/
 bool readGt(
-  bool (*fcnReadCamPtr)(const std::string &, cameras::PinholeCamera &), //pointer to the function reading a camera
-  const std::string & sGTPath,
-  const std::string & suffix,
-  std::vector<std::string> & vec_filenames,
-  std::map<std::string, std::pair<Mat3, Vec3>> & map_Rt_gt,
-  std::map<size_t, cameras::PinholeCamera, std::less<size_t>,
-    Eigen::aligned_allocator<std::pair<const size_t, cameras::PinholeCamera>>> & map_camerasGT)
+        bool (*fcnReadCamPtr)(const std::string &, cameras::PinholeCamera &), //pointer to the function reading a camera
+        const std::string & sGTPath,
+        const std::string & suffix,
+        std::vector<std::string> & vec_filenames,
+        std::map<std::string, std::pair<Mat3, Vec3>> & map_Rt_gt,
+        std::map<size_t, cameras::PinholeCamera, std::less<size_t>,
+        Eigen::aligned_allocator<std::pair<const size_t, cameras::PinholeCamera>>> & map_camerasGT)
 {
   // IF GT_Folder exists, perform evaluation of the quality of rotation estimates
   if (!stlplus::is_folder(sGTPath)) {
@@ -506,7 +506,7 @@ bool readGt(
     std::map<std::string, Mat3, Eigen::aligned_allocator<Mat3>> map_R_gt;
     //Try to read .suffix camera (parse camera names)
     std::vector<std::string> vec_camfilenames =
-      stlplus::folder_wildcard(sGTPath, "*." + suffix, false, true);
+            stlplus::folder_wildcard(sGTPath, "*." + suffix, false, true);
     std::sort(vec_camfilenames.begin(), vec_camfilenames.end());
     if (!vec_camfilenames.empty())
     {
@@ -590,7 +590,7 @@ int main(int argc, char **argv)
   CmdLine cmd;
 
   std::string sImageDir, sfileDatabase = "", sOutputDir = "", sKmatrix, sGroundTruthPath = "",
-    sSfmDataName = "sfm_data.json", sCalibrationFile = "";
+          sSfmDataName = "sfm_data.json", sCalibrationFile = "";
 
   std::string sPriorWeights;
   std::pair<bool, Vec3> prior_w_info(false, Vec3(1.0, 1.0, 1.0));
@@ -624,7 +624,7 @@ int main(int argc, char **argv)
   cmd.add(make_switch('P', "use_pose_prior"));
   cmd.add(make_option('W', sPriorWeights, "priorWeights"));
   cmd.add(make_option('m', i_GPS_XYZ_method, "gps_to_xyz_method"));
-  cmd.add(make_switch('G', "writeCameraFiles"));
+  //cmd.add(make_switch('G', "writeCameraFiles"));
   cmd.add(make_option('C', sCalibrationFile, "cameraCalibrationFile"));
   cmd.add(make_switch('A', "appendData"));
   cmd.add(make_switch('B', "parentDirAsRoot"));
@@ -674,11 +674,12 @@ int main(int argc, char **argv)
               << "[-P|--use_pose_prior] Use pose prior if GPS EXIF pose is available\n"
               << "[-W|--prior_weights] \"x;y;z;\" of weights for each dimension of the prior (default: 1.0)\n"
               << "[-m|--gps_to_xyz_method] XZY Coordinate system:\n" << "\t 0: ECEF (default)\n" << "\t 1: UTM\n"
-              << "[-G|--writeCameraFiles] poses from trajectory files will be writen as camera files in outputDirectory\n"
+              //<< "[-G|--writeCameraFiles] poses from trajectory files will be writen as camera files in outputDirectory\n"
               << "[-E|--selectionMethod] Image selection method:\n"
-                "\t 0: All images are used (default)\n"
-                "\t 1: Every Nth image is used\n"
-                "\t 2: A minimum distance of N needs to be between two consecutive images; gt poses need to be provided\n"
+                      "\t 0: All images are used (default)\n"
+                      "\t 1: Every Nth image is used\n"
+                      "\t 2: A minimum distance of N needs to be between two consecutive images; gt poses need to be provided\n"
+                      "\t 3: A random image within a sequence of N images is selected\n"
               << "[-e|--selectionParam] Parameter N for method defined using -E"
               << std::endl;
 
@@ -701,7 +702,7 @@ int main(int argc, char **argv)
             << "--camera_model " << i_User_camera_model << std::endl
             << "--group_camera_model " << b_Group_camera_model << std::endl
             << "--cameraCalibrationFile " << sCalibrationFile << std::endl
-            << "--writeCameraFiles " << cmd.used('G') << std::endl
+            //<< "--writeCameraFiles " << cmd.used('G') << std::endl
             << "--parentDirAsRoot " << cmd.used('B') << std::endl
             << "--selectionMethod " << i_image_selection_method << std::endl
             << "--selectionParam " << image_selection_param << std::endl;
@@ -777,6 +778,7 @@ int main(int argc, char **argv)
     prior_w_info.first = true;
   }
 
+  int target_index = -1;
   switch (i_image_selection_method)
   {
     case 0:
@@ -798,6 +800,13 @@ int main(int argc, char **argv)
       }
       else
         std::cout << "Minimum distance between consecutive images: " << image_selection_param << std::endl;
+      break;
+    }
+    case 3:
+    {
+      // randomly select an image of the range image_selection_param
+      // initialize target index
+      target_index = rand() % (int)image_selection_param;
       break;
     }
     default:
@@ -968,7 +977,7 @@ int main(int argc, char **argv)
   Views &views = sfm_data.views;
   Intrinsics &intrinsics = sfm_data.intrinsics;
   Poses &poses = sfm_data.poses;
-  std::vector<Pose3> vec_poses;
+  std::vector<Pose3> vec_poses; // only used for i_image_selection_method
   std::vector<std::string>::const_iterator iter_image;
 
   C_Progress_display my_progress_bar(vec_image.size(), std::cout, "\n- Image listing -\n");
@@ -1024,12 +1033,28 @@ int main(int argc, char **argv)
         }
         break;
       }
+      case 3:
+      {
+        // randomly select an image of the range image_selection_param
+        if (index != target_index)
+          continue;
+        else
+        {
+          int r = rand() % (int)image_selection_param;
+          int min_index = (views.size()+1) * (int)image_selection_param;
+          target_index = min_index + r;
+        }
+        break;
+      }
       default:
         break;
     }
 
-    // save poses of images which are actually used
-    vec_poses.push_back(pose);
+    if (i_image_selection_method == 2)
+    {
+      // save poses of images which are actually used
+      vec_poses.push_back(pose);
+    }
 
     // Test if the image format is supported:
     if (openMVG::image::GetFormat(sImageFilename.c_str()) == openMVG::image::Unknown)
@@ -1264,16 +1289,16 @@ int main(int argc, char **argv)
     }
 
     // Write poses as camera files
-    if (cmd.used('G') && !sGroundTruthPath.empty())
-    {
-      if (e_User_camera_model != CAMERA_SPHERICAL)
-      {
-        // PinholeCamera(K, R, t): K ... intrinsics, R, t ... extrinsics (world seen from camera)
-        PinholeCamera camGT(K, map_img_pose[sImFilenamePart].first, -map_img_pose[sImFilenamePart].first*map_img_pose[sImFilenamePart].second);
-        std::string sCameraFileName = sImFilenamePart + ".bin";
-        save(stlplus::create_filespec(sOutputDir, sCameraFileName).c_str(), camGT);
-      }
-    }
+//    if (cmd.used('G') && !sGroundTruthPath.empty())
+//    {
+//      if (e_User_camera_model != CAMERA_SPHERICAL)
+//      {
+//        // PinholeCamera(K, R, t): K ... intrinsics, R, t ... extrinsics (world seen from camera)
+//        PinholeCamera camGT(K, map_img_pose[sImFilenamePart].first, -map_img_pose[sImFilenamePart].first*map_img_pose[sImFilenamePart].second);
+//        std::string sCameraFileName = sImFilenamePart + ".bin";
+//        save(stlplus::create_filespec(sOutputDir, sCameraFileName).c_str(), camGT);
+//      }
+//    }
   }
 
   // organize paths and filenames in sfm_data file
