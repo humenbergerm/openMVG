@@ -26,6 +26,7 @@ option(OpenMVG_BUILD_SOFTWARES "Build OpenMVG softwares" ON)
 option(OpenMVG_BUILD_GUI_SOFTWARES "Build OpenMVG GUI softwares (QT5)" ON)
 option(OpenMVG_BUILD_COVERAGE "Enable code coverage generation (gcc only)" OFF)
 option(OpenMVG_USE_OPENMP "Enable OpenMP parallelization" ON)
+option(EIGEN_NO_ALIGN "Whether to disable eigen alignment optimizations" OFF)
 # ==============================================================================
 # Opencv is not used by openMVG but some samples show how to use openCV
 #  and openMVG simultaneously
@@ -250,7 +251,9 @@ if (NOT Eigen3_FOUND)
 else()
   set(EIGEN_INCLUDE_DIRS ${EIGEN3_INCLUDE_DIR})
 endif()
-
+if(EIGEN_NO_ALIGN)
+    add_definitions( -DEIGEN_MAX_ALIGN_BYTES=0 )
+endif()
 # ==============================================================================
 # Ceres
 # ==============================================================================
