@@ -325,11 +325,19 @@ void MainWindow::registerProject()
     if (openMVG::geometry::FindRTS(x1, x2, &S, &t, &R))
     {
       openMVG::geometry::Refine_RTS(x1,x2,&S,&t,&R);
+      Vec3 transposed_t = t.transpose();
       std::cout << "Found transform:\n"
         << " scale: " << S << "\n"
         << " rotation:\n" << R << "\n"
-        << " translation: "<< t.transpose() << std::endl;
-
+        << " translation: "<< transposed_t << std::endl;
+      std::cout << "For transform.json:" << std::endl
+        << "\"scale\": " << S << "," << std::endl
+        << "\"rotation\": [" << std::endl
+       	<< "\t[" << R(0,0) << ", " << R(0,1) << ", " << R(0,2) << "]," << std::endl
+       	<< "\t[" << R(1,0) << ", " << R(1,1) << ", " << R(1,2) << "]," << std::endl
+       	<< "\t[" << R(2,0) << ", " << R(2,1) << ", " << R(2,2) << "]" << std::endl
+	<< "]," << std::endl
+        << "\"translation\": [" << transposed_t[0] << ", " << transposed_t[1] << ", " << transposed_t[2] << "]" << std::endl;
 
       //--
       // Apply the found transformation as a 3D Similarity transformation matrix // S * R * X + t
