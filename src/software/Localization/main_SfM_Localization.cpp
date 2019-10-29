@@ -41,7 +41,7 @@ std::string FindCommonRootDir(const std::string & dir1, const std::string & dir2
   {
     if (dir1[i] != dir2[i]) break;
   }
-  return dir1.substr(0,i);
+  return stlplus::folder_part(dir1.substr(0,i));
 }
 
 // ----------------------------------------------------
@@ -59,6 +59,7 @@ int main(int argc, char **argv)
   CmdLine cmd;
 
   std::string sSfM_Data_Filename;
+  std::string sSfM_Query_Filename;
   std::string sMatchesDir;
   std::string sOutDir = "";
   std::string sMatchesOutDir;
@@ -77,6 +78,7 @@ int main(int argc, char **argv)
   cmd.add( make_option('o', sOutDir, "out_dir") );
   cmd.add( make_option('u', sMatchesOutDir, "match_out_dir") );
   cmd.add( make_option('q', sQueryDir, "query_image_dir"));
+  cmd.add( make_option('Q', sSfM_Query_Filename, "query_sfm_file"));
   cmd.add( make_option('r', dMaxResidualError, "residual_error"));
   cmd.add( make_option('c', i_User_camera_model, "camera_model") );
   cmd.add( make_switch('s', "single_intrinsics"));
@@ -100,6 +102,8 @@ int main(int argc, char **argv)
     << "  (if empty the initial matching directory will be used)\n"
     << "[-q|--query_image_dir] path to an image OR to the directory containing the images that must be localized\n"
     << "  (the directory can also contain the images from the initial reconstruction)\n"
+    << "[-Q|--query_sfm_file] path to the sfm_data file containing the list and intrinsics of the query images\n"
+    << "   (use either -q or -Q but not both)"
     << "\n"
     << "(optional)\n"
     << "[-r|--residual_error] upper bound of the residual error tolerance\n"
@@ -129,6 +133,25 @@ int main(int argc, char **argv)
     return EXIT_FAILURE;
   }
 
+  // Load Sfm_Data query (images and intrinsics)
+  // todo what about poses?
+  SfM_Data query_sfm_data;
+  if (!sSfM_Query_Filename.empty())
+  {
+    if (!sQueryDir.empty())
+    {
+      std::cerr << "Can't use both --query_image_dir and --query_sfm_file" << std::endl;
+      return EXIT_FAILURE;
+    }
+
+    if (!Load(query_sfm_data, sSfM_Query_Filename, ESfM_Data(INTRINSICS | VIEWS )))
+    {
+      std::cerr << std::endl << "The query SfM_Data file \"" << sSfM_Query_Filename << "\" cannot be read."
+                << std::endl;
+      return EXIT_FAILURE;
+    }
+  }
+
   // Load input SfM_Data scene
   SfM_Data sfm_data;
   if (!Load(sfm_data, sSfM_Data_Filename, ESfM_Data(ALL))) {
@@ -151,6 +174,12 @@ int main(int argc, char **argv)
 
   bUseSingleIntrinsics = cmd.used('s');
   bExportStructure = cmd.used('e');
+
+  if (bUseSingleIntrinsics && !sSfM_Query_Filename.empty())
+  {
+    std::cout << "--single_intrinsics and --query_sfm_file are set. Intrinsics from --query_sfm_file will be used!\n";
+  }
+
   // ---------------
   // Initialization
   // ---------------
@@ -203,12 +232,13 @@ int main(int argc, char **argv)
     return EXIT_FAILURE;
   }
 
-  if ( !stlplus::folder_exists( sQueryDir ) && !stlplus::file_exists( sQueryDir ) )
-  {
-    std::cerr << "\nThe query directory/file does not exist : " << std::endl;
-    std::cerr << sQueryDir << std::endl;
-    return EXIT_FAILURE;
-  }
+  if (!sQueryDir.empty())
+    if ( !stlplus::folder_exists( sQueryDir ) && !stlplus::file_exists( sQueryDir ) )
+    {
+      std::cerr << "\nThe query directory/file does not exist : " << std::endl;
+      std::cerr << sQueryDir << std::endl;
+      return EXIT_FAILURE;
+    }
 
   if (sOutDir.empty())  {
     std::cerr << "\nPlease provide a valid directory for the option [-o|--out_dir]." << std::endl;
@@ -252,26 +282,15 @@ int main(int argc, char **argv)
                   return stlplus::filename_part(sfm_data.views.at(n)->s_Img_path);
                 });
 
-  // list images in query directory
-  std::vector<std::string> vec_image;
-
-  if (stlplus::is_file(sQueryDir))
+  // find common root directory between images in model and query
+  std::string common_root_dir;
+  //const std::string common_root_dir = FindCommonRootDir(sfm_data.s_root_path, sQueryDir);
+  if (!sSfM_Query_Filename.empty())
   {
-    vec_image.emplace_back(stlplus::filename_part(sQueryDir)); // single file
-    sQueryDir = stlplus::folder_part(sQueryDir);
+    common_root_dir = FindCommonRootDir(sfm_data.s_root_path, query_sfm_data.s_root_path);
+  } else {
+    common_root_dir = FindCommonRootDir(sfm_data.s_root_path, sQueryDir);
   }
-  else vec_image = stlplus::folder_files(sQueryDir); // multiple files
-
-  std::sort(vec_image.begin(), vec_image.end());
-
-  // find difference between two list of images
-  std::vector<std::string> vec_image_new;
-  std::set_difference(vec_image.cbegin(), vec_image.cend(),
-      vec_image_original.cbegin(),vec_image_original.cend(),
-      std::back_inserter(vec_image_new));
-
-  // find common root directory between images in vec_image_original and vec_images_new
-  const std::string common_root_dir = FindCommonRootDir(sfm_data.s_root_path, sQueryDir);
 
   // check if sfm_data's root dir differs from the common root dir.
   if (sfm_data.s_root_path != common_root_dir)
@@ -281,10 +300,53 @@ int main(int argc, char **argv)
     for (auto & view : sfm_data.GetViews())
     {
       view.second->s_Img_path = stlplus::create_filespec(stlplus::folder_to_relative_path(common_root_dir, sfm_data.s_root_path),
-          view.second->s_Img_path);
+        view.second->s_Img_path);
     }
     // change root path to common root path
     sfm_data.s_root_path = common_root_dir;
+  }
+  
+  // Same for query_sfm_data's root dir
+  if (query_sfm_data.s_root_path != common_root_dir)
+  {
+    for (auto & view : query_sfm_data.GetViews())
+    {
+      view.second->s_Img_path = stlplus::create_filespec(stlplus::folder_to_relative_path(common_root_dir, query_sfm_data.s_root_path),
+        view.second->s_Img_path);
+    }
+    query_sfm_data.s_root_path = common_root_dir;
+  }
+
+  // list images in query directory
+  std::vector<std::string> vec_image;
+  std::vector<std::string> vec_image_new;
+  std::string queryPath;
+  Hash_Map<std::string, int> queryViewIntrinsics;
+  if (!sQueryDir.empty())
+  {
+    if (stlplus::is_file(sQueryDir))
+    {
+      vec_image.emplace_back(stlplus::filename_part(sQueryDir)); // single file
+      sQueryDir = stlplus::folder_part(sQueryDir);
+    }
+    else vec_image = stlplus::folder_files(sQueryDir); // multiple files
+
+    std::sort(vec_image.begin(), vec_image.end());
+
+    // find difference between two list of images
+    std::vector<std::string> vec_image_new;
+    std::set_difference(vec_image.cbegin(), vec_image.cend(),
+      vec_image_original.cbegin(),vec_image_original.cend(),
+      std::back_inserter(vec_image_new));
+    queryPath = sQueryDir;
+  } else if (!sSfM_Query_Filename.empty()) {
+    Views views =  query_sfm_data.GetViews();
+    for (const auto &s : views)
+    {
+      vec_image_new.push_back(s.second->s_Img_path);
+      queryViewIntrinsics.insert({s.second->s_Img_path, s.second->id_intrinsic});
+    }
+    queryPath = query_sfm_data.s_root_path;
   }
 
   // references
@@ -316,7 +378,7 @@ int main(int argc, char **argv)
     std::unique_ptr<Regions> query_regions(regions_type->EmptyClone());
     image::Image<unsigned char> imageGray;
     {
-      const std::string sView_filename = stlplus::create_filespec(sQueryDir, *iter_image);
+      const std::string sView_filename = stlplus::create_filespec(queryPath, *iter_image);
       // Try to open image
       if (!image::ReadImage(sView_filename.c_str(), &imageGray))
       {
@@ -357,6 +419,12 @@ int main(int argc, char **argv)
         std::cout << "The provided image does not have the same size as the camera model you want to use." << std::endl;
         continue;
       }
+    } else {
+      if (!sSfM_Query_Filename.empty()) {
+        // Get intrinsics from sfm query file
+        optional_intrinsic = query_sfm_data.GetIntrinsics().at(queryViewIntrinsics[*iter_image]);
+      }
+
     }
     if (optional_intrinsic)
     {
