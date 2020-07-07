@@ -14,6 +14,10 @@ if (${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
   message(FATAL_ERROR "In-source builds not allowed.")
 endif()
 
+# Issue with recent CMake
+# See https://github.com/openMVG/openMVG/issues/1720
+cmake_policy( SET CMP0100 NEW )
+
 # ==============================================================================
 # OpenMVG build options
 # ==============================================================================
